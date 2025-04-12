@@ -14,6 +14,8 @@ return new class extends Migration
         Schema::create('station_line', function (Blueprint $table) {
             $table->id();
             $table->timestamps();
+            $table->foreignId("station_id")->references("id")->on("stations")->onDelete("cascade");
+            $table->foreignId("line_id")->references("id")->on("lines")->onDelete("cascade");
         });
     }
 

@@ -14,6 +14,11 @@ return new class extends Migration
         Schema::create('lines', function (Blueprint $table) {
             $table->id();
             $table->timestamps();
+            $table->foreignId("start_station_id")->references("id")->on("stations")->onDelete("cascade");
+            $table->foreignId("end_station_id")->references("id")->on("stations")->onDelete("cascade");
+            $table->integer('length');
+            $table->string("demand");
+            $table->string("type");
         });
     }
 

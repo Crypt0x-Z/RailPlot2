@@ -14,6 +14,10 @@ return new class extends Migration
         Schema::create('stations', function (Blueprint $table) {
             $table->id();
             $table->timestamps();
+            $table->string("station_name");
+            $table->float("x_coord");
+            $table->float("y_coord");
+            $table->string("type");
         });
     }
 
