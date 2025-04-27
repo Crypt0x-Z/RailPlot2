@@ -67,9 +67,9 @@
                     <input type="text" id="stationName" name="stationName">
 
                     <label for="stationX">X Coordinate:</label>
-                    <input type="number" id="stationX" name="stationX" step="1" readonly>
+                    <input type="number" id="stationX" name="stationX" step="1">
                     <label for="stationY">Y Coordinate:</label>
-                    <input type="number" id="stationY" name="stationY" step="1" readonly>
+                    <input type="number" id="stationY" name="stationY" step="1">
 
                     <label>Station Type:</label>
                     <div> 

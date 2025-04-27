@@ -36,7 +36,7 @@ const topLeft = { x: 0, y: 0 };
 const lineOffsetAmount = 8; // line overlap
 var zoomDisabled = 0;
 
-// lists (duh)
+// lists stuff
 var stations = [];
 var lines = [];
 var trains = [];
@@ -67,14 +67,14 @@ const closeLineModalBtn = document.querySelector(".line-modal-close");
 const closeStationLinesModalBtn = document.querySelector(".station-lines-modal-close");
 
 
-// When the user clicks on the close button, close the modal
+// close modal
 closeStationModalBtn.onclick = function () {
     stationModal.style.display = "none";
 }
 
 closeLineModalBtn.onclick = function () {
     lineModal.style.display = "none";
-    resetLineForm(); // Reset form when closing
+    resetLineForm();
 }
 
 closeStationLinesModalBtn.onclick = function () {
@@ -86,15 +86,14 @@ closeExpressServiceModalBtn.onclick = function () {
 }
 
 
-// When the user clicks anywhere outside of the modal, close it
+// close modal when clicking outside modal
 window.onclick = function (event) {
-    // Close modals only if click is directly on the modal backdrop
     if (event.target == stationModal) {
         stationModal.style.display = "none";
     }
     if (event.target == lineModal) {
         lineModal.style.display = "none";
-        resetLineForm(); // Reset form when closing
+        resetLineForm();
     }
     if (event.target == stationLinesModal) {
         stationLinesModal.style.display = "none";
@@ -102,20 +101,20 @@ window.onclick = function (event) {
     if (event.target == expressServiceModal) {
         expressServiceModal.style.display = "none";
     }
-    if (event.target == listModal) { // Close station list modal on outside click
+    if (event.target == listModal) {
         listModal.style.display = "none";
     }
 };
 
-// --- MOUSE EVENT HANDLING ---
+// mouse events
 canvas.addEventListener('mouseleave', () => {
-    canvas.style.cursor = 'default'; // Show default cursor when leaving canvas
-    mouse.button = false; // Ensure button state is reset
-    mouse.drag = false; // Ensure drag state is reset
+    canvas.style.cursor = 'default';
+    mouse.button = false;
+    mouse.drag = false;
 });
 
 canvas.addEventListener('mouseenter', () => {
-    canvas.style.cursor = 'none'; // Re-enable custom cursor if desired for mouse
+    canvas.style.cursor = 'none';
 });
 
 function updateStationStats() {
@@ -124,7 +123,7 @@ function updateStationStats() {
     const undergroundStations = stations.filter(s => s.location.includes('underground')).length;
     const suspendedStations = stations.filter(s => s.location.includes('suspended')).length;
 
-    // Check if elements exist before updating
+    // checks
     const totalStationsEl = document.getElementById('totalStations');
     const groundStationsEl = document.getElementById('groundStations');
     const undergroundStationsEl = document.getElementById('undergroundStations');
@@ -135,7 +134,7 @@ function updateStationStats() {
     if (undergroundStationsEl) undergroundStationsEl.textContent = undergroundStations;
     if (suspendedStationsEl) suspendedStationsEl.textContent = suspendedStations;
 
-    // Calculate line stats, including express lines
+    // calcs
     const totalLines = lines.length;
     const groundLines = lines.filter(l => l.type === 'ground').length;
     const undergroundLines = lines.filter(l => l.type === 'underground').length;
@@ -154,7 +153,7 @@ function updateStationStats() {
     if (suspendedLinesEl) suspendedLinesEl.textContent = suspendedLines;
     if (expressLinesStatEl) expressLinesStatEl.textContent = expressLines; // Update Express stat
 
-    // Update Train Stats
+    // update stats
     const totalTrains = trains.reduce((sum, train) => sum + train.quantity, 0);
     const groundTrains = trains.filter(t => t.type === 'ground').reduce((sum, train) => sum + train.quantity, 0);
     const undergroundTrains = trains.filter(t => t.type === 'underground').reduce((sum, train) => sum + train.quantity, 0);
@@ -173,17 +172,14 @@ function updateStationStats() {
 
 
 function fetchStations() {
-    // Initial resize and draw
     handleResize();
     update();
     updateStationStats();
-    updateLinesUI(); // Initial update of the line list
+    updateLinesUI();
 }
 
-// Call fetchStations after DOM is loaded
-document.addEventListener("DOMContentLoaded", fetchStations);
 
-// Add resize listener
+document.addEventListener("DOMContentLoaded", fetchStations);
 window.addEventListener('resize', handleResize);
 
 
@@ -193,9 +189,9 @@ function clearGrid() {
     }
     stations = [];
     lines = [];
-    update();           // Redraw canvas
-    updateLinesUI();    // Clear right-hand line list
-    updateStationStats(); // Update stats if applicable
+    update();
+    updateLinesUI();
+    updateStationStats();
 }
 
 document.getElementById('clearGridBtn').addEventListener('click', clearGrid);
@@ -203,13 +199,12 @@ document.getElementById('clearGridBtn').addEventListener('click', clearGrid);
 
 function mouseEvents(e) {
     const bounds = canvas.getBoundingClientRect();
-    mouse.x = e.pageX - bounds.left - scrollX; // Use pageX for consistency
-    mouse.y = e.pageY - bounds.top - scrollY;  // Use pageY for consistency
+    mouse.x = e.pageX - bounds.left - scrollX;
+    mouse.y = e.pageY - bounds.top - scrollY;
     if (e.type === "mousedown") {
         mouse.button = true;
         mouse.downX = mouse.x;
         mouse.downY = mouse.y;
-        // Reset touch states if mouse is used
         isPanning = false;
         isPinching = false;
     } else if (e.type === "mouseup") {
@@ -221,13 +216,11 @@ function mouseEvents(e) {
     }
 }
 
-// Add mouse listeners to the document to capture events even outside canvas during drag
 ["mousedown", "mouseup", "mousemove"].forEach(name => document.addEventListener(name, mouseEvents));
-// Keep wheel listener on canvas to prevent zooming whole page
 canvas.addEventListener("wheel", mouseEvents, { passive: false });
 
 
-// --- TOUCH EVENT HANDLING ---
+// touch events (mobile)
 function getTouchPos(touch) {
     const bounds = canvas.getBoundingClientRect();
     return {
@@ -254,11 +247,10 @@ function getPinchCenter(touches) {
     };
 }
 
+// remember mouse pos for touch pos (start same)
+// no mouse events during touch
 function handleTouchStart(e) {
-    // Prevent mouse events from firing after touch
-    // e.preventDefault(); // Keep this commented unless double events occur
-
-    mouse.button = false; // Ensure mouse drag is off
+    mouse.button = false;
 
     if (e.touches.length === 1) {
         const touchPos = getTouchPos(e.touches[0]);
@@ -266,7 +258,7 @@ function handleTouchStart(e) {
         isPinching = false;
         lastTouchX = touchPos.x;
         lastTouchY = touchPos.y;
-        mouse.downX = touchPos.x; // Store initial touch for tap detection
+        mouse.downX = touchPos.x;
         mouse.downY = touchPos.y;
     } else if (e.touches.length === 2) {
         isPinching = true;
@@ -278,8 +270,8 @@ function handleTouchStart(e) {
     }
 }
 
+// touch controls
 function handleTouchMove(e) {
-    // Only prevent default if we are handling the touch (panning or pinching)
     if (isPanning || isPinching) {
         e.preventDefault();
     }
@@ -295,13 +287,11 @@ function handleTouchMove(e) {
     } else if (isPinching && e.touches.length === 2) {
         const currentDistance = getPinchDistance(e.touches);
         const scale = currentDistance / initialPinchDistance;
-        const center = getPinchCenter(e.touches); // Use current center
+        const center = getPinchCenter(e.touches);
 
-        // Apply scale, ensuring limits are respected
-        const currentZoomDisabled = zoomDisabled; // Store current state
+        const currentZoomDisabled = zoomDisabled;
         panZoom.scaleAt(center.x, center.y, scale);
 
-        // Only update initial distance if zoom was not disabled
         if (zoomDisabled === 0 || (currentZoomDisabled !== zoomDisabled)) {
             initialPinchDistance = currentDistance;
         }
@@ -309,7 +299,6 @@ function handleTouchMove(e) {
 }
 
 function handleTouchEnd(e) {
-    // e.preventDefault(); // Might interfere with click event
 
     if (e.touches.length < 2) {
         isPinching = false;
@@ -318,32 +307,14 @@ function handleTouchEnd(e) {
         isPanning = false;
     }
 
-    // --- Basic Tap Detection (using existing click listener) ---
-    // Calculate distance moved during touch
     const touchPos = getTouchPos(e.changedTouches[0]);
     const distance = Math.sqrt((touchPos.x - mouse.downX) ** 2 + (touchPos.y - mouse.downY) ** 2);
-
-    // If little movement, let the 'click' event handle the tap
-    // The existing click listener already has distance check
-    // console.log("Touch end distance:", distance);
-
-    // Optional: Implement double-tap zoom here if needed
-    // const now = Date.now();
-    // if (now - lastTapTime < doubleTapDelay) {
-    //     // Double tap detected - zoom in/out at tap location
-    //     const scaleFactor = panZoom.scale > 1 ? 0.5 : 1.5; // Toggle zoom
-    //     panZoom.scaleAt(touchPos.x, touchPos.y, scaleFactor);
-    // }
-    // lastTapTime = now;
 }
 
 canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
 canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
 canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
 canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false }); // Handle cancellation
-
-// --- End TOUCH EVENT HANDLING ---
-
 
 const panZoom = {
     x: 0,
@@ -355,26 +326,24 @@ const panZoom = {
         let newScale = this.scale * sc;
         newScale = Math.max(0.5, Math.min(newScale, 3)); // Limit zoom here
 
-        // Check if zoom limit is reached
+        // zoom limit
         if ((newScale === 3 && sc > 1) || (newScale === 0.5 && sc < 1)) {
-            // If trying to zoom beyond limits, don't change scale or position
             zoomDisabled = newScale === 3 ? 1 : -1;
-            return; // Exit without applying change
+            return;
         }
 
-        const actualScaleChange = newScale / previousScale; //calculate actual scale change
-        this.scale = newScale; // Apply the new scale
+        const actualScaleChange = newScale / previousScale;
+        this.scale = newScale;
 
         this.x = x - (x - this.x) * actualScaleChange;
         this.y = y - (y - this.y) * actualScaleChange;
 
-        // Update zoomDisabled state based on the new scale
         if (this.scale >= 3) {
-            zoomDisabled = 1; // Disable zoom in
+            zoomDisabled = 1;
         } else if (this.scale <= 0.5) {
-            zoomDisabled = -1; // Disable zoom out
+            zoomDisabled = -1;
         } else {
-            zoomDisabled = 0; // Enable all zoom
+            zoomDisabled = 0;
         }
     },
     toWorld(x, y, point = {}) {
@@ -390,6 +359,7 @@ const panZoom = {
     }
 }
 
+// grid for canvas
 function drawGrid(gridScreenSize = 128, adaptive = true) {
     var scale, gridScale, size, x, y, limitedGrid = false;
     if (adaptive) {
@@ -410,10 +380,10 @@ function drawGrid(gridScreenSize = 128, adaptive = true) {
         }
     }
     panZoom.apply();
-    ctx.lineWidth = 1 / panZoom.scale; // Make grid lines thinner when zoomed in
-    ctx.strokeStyle = "#aaa"; // Lighter grid color
+    ctx.lineWidth = 1 / panZoom.scale;
+    ctx.strokeStyle = "#aaa";
     ctx.beginPath();
-    for (let i = 0; i < size; i += gridScale) { // Changed var to let
+    for (let i = 0; i < size; i += gridScale) {
         ctx.moveTo(x + i, y);
         ctx.lineTo(x + i, y + size);
         ctx.moveTo(x, y + i);
@@ -423,29 +393,25 @@ function drawGrid(gridScreenSize = 128, adaptive = true) {
     ctx.stroke();
 }
 
-// Draw crosshair only for mouse input
 function drawPoint(x, y) {
-    // Only draw if not panning/pinching (likely mouse input)
     if (isPanning || isPinching) return;
 
     const size = 8;
     const ringRadius = 6;
 
-    // Crosshair lines
     ctx.strokeStyle = '#333';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(x - size, y); // Horizontal left
+    ctx.moveTo(x - size, y);
     ctx.lineTo(x - 2, y);
-    ctx.moveTo(x + 2, y); // Horizontal right
+    ctx.moveTo(x + 2, y);
     ctx.lineTo(x + size, y);
-    ctx.moveTo(x, y - size); // Vertical up
+    ctx.moveTo(x, y - size);
     ctx.lineTo(x, y - 2);
-    ctx.moveTo(x, y + 2); // Vertical down
+    ctx.moveTo(x, y + 2);
     ctx.lineTo(x, y + size);
     ctx.stroke();
 
-    // Central ring
     ctx.beginPath();
     ctx.arc(x, y, ringRadius, 0, 2 * Math.PI);
     ctx.strokeStyle = '#555';
@@ -453,13 +419,12 @@ function drawPoint(x, y) {
     ctx.stroke();
 }
 
-
+// station drawing on canvas
 function drawStation(station) {
     panZoom.apply();
-    // Scale line width and radius based on zoom
     const baseRadius = 8;
     const baseLineWidth = 2;
-    const scaledRadius = baseRadius / Math.sqrt(panZoom.scale); // Scale radius less aggressively
+    const scaledRadius = baseRadius / Math.sqrt(panZoom.scale);
     const scaledLineWidth = baseLineWidth / panZoom.scale;
     const scaledFontSize = 12 / panZoom.scale;
     const scaledLabelOffset = 20 / panZoom.scale;
@@ -470,51 +435,45 @@ function drawStation(station) {
 
     ctx.lineWidth = scaledLineWidth;
 
-    // Define colors for each type
     const typeColors = {
         ground: "yellow",
         underground: "red",
         suspended: "blue"
     };
 
-    // Extract the station's types
     const types = Array.isArray(station.location) ? station.location : [];
 
     const centerX = station.x;
     const centerY = station.y;
 
 
-    // Draw multi-colored ring around the station based on types
+    // station ring color for type
     if (types.length > 0) {
-        const arcSize = (2 * Math.PI) / types.length; // Divide circle based on number of types
-        ctx.lineWidth = scaledLineWidth * 1.5; // Make ring slightly thicker
+        const arcSize = (2 * Math.PI) / types.length;
+        ctx.lineWidth = scaledLineWidth * 1.5;
         for (let i = 0; i < types.length; i++) {
-            const startAngle = i * arcSize - Math.PI / 2; // Start from top
+            const startAngle = i * arcSize - Math.PI / 2;
             const endAngle = (i + 1) * arcSize - Math.PI / 2;
             ctx.beginPath();
             ctx.arc(centerX, centerY, scaledRadius, startAngle, endAngle);
-            ctx.strokeStyle = typeColors[types[i]] || "black"; // Default to black if unknown type
+            ctx.strokeStyle = typeColors[types[i]] || "black";
             ctx.stroke();
         }
     }
 
 
-    // Draw center dot
     ctx.fillStyle = "black";
     ctx.beginPath();
-    // Scale center dot size slightly
     ctx.arc(centerX, centerY, Math.max(1, 3 / panZoom.scale), 0, 2 * Math.PI);
     ctx.fill();
 
-    // Don't draw text if zoomed out too far
     if (panZoom.scale > 0.6) {
-        // Display station name
         ctx.fillStyle = "black";
         ctx.font = `${scaledFontSize}px Arial`;
         ctx.textAlign = "center";
         ctx.fillText(station.name, centerX, centerY + scaledLabelOffset);
 
-        // --- Add Line Numbered Station Labels ---
+        // japan style line code for station
         const connectedLineLabels = [];
         lines.forEach(line => {
             const stationIndex = line.stations.indexOf(station.name);
@@ -522,20 +481,18 @@ function drawStation(station) {
                 const stationNumber = stationIndex + 1;
                 connectedLineLabels.push({
                     text: `${line.code}${stationNumber}`,
-                    color: line.color || 'black' // Use line color for label
+                    color: line.color || 'black'
                 });
             }
         });
 
-        // Draw connected line labels below the station name
-        let textOffsetY = centerY + scaledLineLabelOffset; // Starting Y position below station name
-        ctx.font = `bold ${scaledLineLabelFontSize}px Arial`; // Smaller font for line labels
+        let textOffsetY = centerY + scaledLineLabelOffset;
+        ctx.font = `bold ${scaledLineLabelFontSize}px Arial`;
         connectedLineLabels.forEach(labelInfo => {
             ctx.fillStyle = labelInfo.color;
             ctx.fillText(labelInfo.text, centerX, textOffsetY);
-            textOffsetY += scaledLineLabelGap; // Increment Y position for the next label
+            textOffsetY += scaledLineLabelGap;
         });
-        // --- End Add Line Numbered Station Labels ---
     }
 
 
@@ -546,54 +503,42 @@ function drawStation(station) {
 var w = canvas.width;
 var h = canvas.height;
 
-// --- Resize Handler ---
+// resize handling
 function handleResize() {
     const navbarHeight = document.querySelector('.navbar')?.offsetHeight || 50;
     const statsPanelHeight = document.getElementById('statsPanel')?.offsetHeight || 60;
-    // Use visual viewport for better mobile sizing, fallback to innerWidth/Height
     w = canvas.width = window.visualViewport ? window.visualViewport.width : innerWidth;
     h = canvas.height = (window.visualViewport ? window.visualViewport.height : innerHeight) - navbarHeight - statsPanelHeight - (window.visualViewport ? window.visualViewport.offsetTop : 0);
 
-    // Adjust for safe areas (notches, etc.) - primarily affects height calculation
     const safeAreaTop = parseInt(getComputedStyle(document.documentElement).getPropertyValue('padding-top')) || 0;
     const safeAreaBottom = parseInt(getComputedStyle(document.documentElement).getPropertyValue('padding-bottom')) || 0;
     h -= (safeAreaTop + safeAreaBottom);
-
-
-    // Optional: Center content after resize if needed, or just redraw
-    // panZoom.x = w / 2 - (centerX * panZoom.scale); // Example centering
-    // panZoom.y = h / 2 - (centerY * panZoom.scale);
-    update(); // Redraw after resize
+    update();
 }
-// --- End Resize Handler ---
-
 
 // Draw loop
 function update() {
-    ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform at the start
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
 
-    // Clearing the canvas MUST happen every frame
     ctx.clearRect(0, 0, w, h);
 
-    // Handle MOUSE zoom
+    // mouse zoom
     if (mouse.wheel !== 0) {
         let scale = 1;
         scale = mouse.wheel < 0 ? 1 / scaleRate : scaleRate;
-        // Check zoom limits before applying
         if ((panZoom.scale <= 0.5 && scale < 1) || (panZoom.scale >= 3 && scale > 1)) {
-            // Don't apply zoom if limits reached
         } else {
             panZoom.scaleAt(mouse.x, mouse.y, scale);
         }
-        mouse.wheel *= 0.8; // Dampen wheel movement
+        mouse.wheel *= 0.8;
         if (Math.abs(mouse.wheel) < 1) {
             mouse.wheel = 0;
         }
     }
 
-    // Handle MOUSE pan (drag)
-    if (mouse.button && !isPanning && !isPinching) { // Only pan with mouse if not touching
+    // mouase pan
+    if (mouse.button && !isPanning && !isPinching) {
         if (!mouse.drag) {
             mouse.lastX = mouse.x;
             mouse.lastY = mouse.y;
@@ -608,26 +553,25 @@ function update() {
         mouse.drag = false;
     }
 
-    // Draw the background grid
+    // bg grid
     drawGrid(gridSize, true);
 
-    // --- Draw Lines ---
-    const segmentUsage = {}; // Map: "StationA->StationB" -> [lineInfo1, lineInfo2, ...] // Key represents a PHYSICAL segment
+    // line draw
+    const segmentUsage = {};
 
-    // First pass: Populate segmentUsage based on PHYSICAL paths shared between lines
+    // tracks (line overlapping doesn't happen)
     lines.forEach((line, lineIndex) => {
-        let physicalStations = line.stations; // Stations defining the physical path
+        let physicalStations = line.stations;
         if (line.originalLineCode) {
             const originalLine = lines.find(ol => ol.code === line.originalLineCode);
             if (originalLine) {
                 physicalStations = originalLine.stations;
             } else {
                 console.warn(`Original line ${line.originalLineCode} not found for express line ${line.code}`);
-                // Use the express line's own stations as fallback if original is missing
             }
         }
 
-        // Iterate through the physical path segments
+        // iterate throught segments PHYSICAL
         for (let i = 0; i < physicalStations.length - 1; i++) {
             const stationA_name = physicalStations[i];
             const stationB_name = physicalStations[i + 1];
@@ -635,15 +579,14 @@ function update() {
             const stationB = stations.find(s => s.name === stationB_name);
 
             if (stationA && stationB) {
-                // Ensure consistent key order (e.g., alphabetical)
+                // consistancy
                 const keyPart1 = stationA.name < stationB.name ? stationA.name : stationB.name;
                 const keyPart2 = stationA.name < stationB.name ? stationB.name : stationA.name;
-                const segmentKey = `${keyPart1}->${keyPart2}`; // Undirected physical segment key
+                const segmentKey = `${keyPart1}->${keyPart2}`;
 
                 if (!segmentUsage[segmentKey]) {
                     segmentUsage[segmentKey] = [];
                 }
-                // Add this line to the usage list for this physical segment if not already present
                 if (!segmentUsage[segmentKey].some(entry => entry.code === line.code)) {
                     segmentUsage[segmentKey].push({ index: lineIndex, code: line.code });
                 }
@@ -651,26 +594,23 @@ function update() {
         }
     });
 
-    // Sort lines within each segment consistently (e.g., by line code)
+    // sort lines in segments by line code
     for (const segmentKey in segmentUsage) {
         segmentUsage[segmentKey].sort((a, b) => a.code.localeCompare(b.code));
     }
 
-    // Second pass: Draw each line
+    // draw lines
     lines.forEach((line, lineIndex) => {
         const isHovered = hoveredLine && hoveredLine.code === line.code;
-        const serviceStations = line.stations; // Stations this line actually serves
+        const serviceStations = line.stations;
 
-        if (serviceStations.length < 2) return; // Cannot draw a line with less than 2 stations
+        if (serviceStations.length < 2) return;
 
-        ctx.beginPath(); // Start path for the current line
-        panZoom.apply(); // Apply zoom/pan transform
+        ctx.beginPath();
+        panZoom.apply();
         ctx.strokeStyle = isHovered ? 'orange' : (line.color || '#000');
-        // Scale line width based on zoom
         ctx.lineWidth = (isHovered ? 6 : 4) / panZoom.scale;
 
-
-        // Determine the physical path stations
         let physicalStations = serviceStations;
         if (line.originalLineCode) {
             const originalLine = lines.find(ol => ol.code === line.originalLineCode);
@@ -679,21 +619,18 @@ function update() {
             }
         }
 
-        // Iterate through the segments defined by the SERVICE stations
+        // iterate throught segments SERVICE
         for (let i = 0; i < serviceStations.length - 1; i++) {
             const currentServiceStationName = serviceStations[i];
             const nextServiceStationName = serviceStations[i + 1];
 
-            // Find the indices of these service stations in the PHYSICAL path
             const physicalIndexCurrent = physicalStations.indexOf(currentServiceStationName);
             const physicalIndexNext = physicalStations.indexOf(nextServiceStationName);
 
-            // Check if both stations exist in the physical path and are adjacent or have intermediate physical stations
             if (physicalIndexCurrent !== -1 && physicalIndexNext !== -1) {
-                // Determine the direction of travel along the physical path
                 const step = physicalIndexCurrent < physicalIndexNext ? 1 : -1;
 
-                // Iterate through the PHYSICAL segments between the current and next SERVICE stations
+                // iterate through the PHYSICAL segments between the current and next SERVICE stations
                 for (let j = physicalIndexCurrent; j !== physicalIndexNext; j += step) {
                     const physicalStationA_name = physicalStations[j];
                     const physicalStationB_name = physicalStations[j + step];
@@ -702,7 +639,7 @@ function update() {
                     const stationB = stations.find(s => s.name === physicalStationB_name);
 
                     if (stationA && stationB) {
-                        // Get the consistent segment key
+                        // consistancy
                         const keyPart1 = stationA.name < stationB.name ? stationA.name : stationB.name;
                         const keyPart2 = stationA.name < stationB.name ? stationB.name : stationA.name;
                         const segmentKey = `${keyPart1}->${keyPart2}`;
@@ -712,12 +649,10 @@ function update() {
                         let offsetX = 0;
                         let offsetY = 0;
 
-                        // Calculate offset (scale offset amount by zoom)
                         if (numOverlappingLines > 1) {
                             const lineEntryIndexInSegment = linesUsingSegment.findIndex(entry => entry.code === line.code);
                             if (lineEntryIndexInSegment !== -1) {
                                 const offsetIndex = lineEntryIndexInSegment - (numOverlappingLines - 1) / 2;
-                                // Scale the offset amount based on zoom
                                 const currentOffsetAmount = (offsetIndex * lineOffsetAmount) / panZoom.scale;
                                 const dx = stationB.x - stationA.x;
                                 const dy = stationB.y - stationA.y;
@@ -731,61 +666,53 @@ function update() {
                             }
                         }
 
-                        // Add the segment to the current line's path
-                        if (j === physicalIndexCurrent) { // Move to start of the first physical segment in this service leg
+                        if (j === physicalIndexCurrent) {
                             ctx.moveTo(stationA.x + offsetX, stationA.y + offsetY);
                         }
                         ctx.lineTo(stationB.x + offsetX, stationB.y + offsetY);
 
-                        // --- Line Number Labeling Logic ---
-                        // Only draw labels if sufficiently zoomed in
+                        // line number labeling
                         if (panZoom.scale > 0.7) {
-                            // Label the segment between SERVICE stations (only once per service segment)
-                            if (j === physicalIndexCurrent) { // Label at the start of the sequence of physical segments
-                                const midX = (stationA.x + stationB.x) / 2 + offsetX; // Approx midpoint of first physical seg
+                            // label the segment between SERVICE stations (only once per service segment)
+                            if (j === physicalIndexCurrent) {
+                                const midX = (stationA.x + stationB.x) / 2 + offsetX; // approx midpoint of first PHYS seg
                                 const midY = (stationA.y + stationB.y) / 2 + offsetY;
                                 const angle = Math.atan2(stationB.y - stationA.y, stationB.x - stationA.x);
                                 const scaledFontSize = 12 / panZoom.scale;
                                 const scaledLabelOffset = -6 / panZoom.scale;
-
-
-                                // Save context state for rotation/translation
+                                
                                 ctx.save();
                                 ctx.translate(midX, midY);
                                 ctx.rotate(angle);
                                 ctx.fillStyle = isHovered ? 'darkorange' : (line.color || '#000');
                                 ctx.font = `bold ${scaledFontSize}px Arial`;
                                 ctx.textAlign = 'center';
-                                ctx.textBaseline = 'bottom'; // Place label above the line
-                                ctx.fillText(i + 1, 0, scaledLabelOffset); // Use index 'i' from the serviceStations loop
-                                ctx.restore(); // Restore context state
+                                ctx.textBaseline = 'bottom';
+                                ctx.fillText(i + 1, 0, scaledLabelOffset);
+                                ctx.restore();
                             }
                         }
-                        // --- End Line Number Labeling Logic ---
                     }
                 }
             } else {
                 console.warn(`Could not find physical path segment between service stations ${currentServiceStationName} and ${nextServiceStationName} for line ${line.code}`);
             }
         }
-        // Stroke the complete path for the line after iterating through all its service segments
         ctx.stroke();
 
-        // --- Draw Line Name Label ---
-        // Only draw if sufficiently zoomed in
+        // line name labeling
         if (panZoom.scale > 0.6) {
-            // Find midpoint based on the first and last SERVICE stations
+            // find midpoint based on the first and last SERV stations
             const firstServiceStation = stations.find(s => s.name === serviceStations[0]);
             const lastServiceStation = stations.find(s => s.name === serviceStations[serviceStations.length - 1]);
             if (firstServiceStation && lastServiceStation) {
                 const midX = (firstServiceStation.x + lastServiceStation.x) / 2;
                 const midY = (firstServiceStation.y + lastServiceStation.y) / 2;
-
-                // Calculate average offset for the label (similar to segment offset calculation)
                 let totalOffsetX = 0;
                 let totalOffsetY = 0;
                 let labelSegmentCount = 0;
-                // Use physical path for offset calculation
+
+                // use PHYS path for calc
                 for (let i = 0; i < physicalStations.length - 1; i++) {
                     const sA_name = physicalStations[i];
                     const sB_name = physicalStations[i + 1];
@@ -800,7 +727,7 @@ function update() {
                             const lineEntryIndexInSegment = linesOnSeg.findIndex(entry => entry.code === line.code);
                             if (lineEntryIndexInSegment !== -1) {
                                 const offsetIdx = lineEntryIndexInSegment - (linesOnSeg.length - 1) / 2;
-                                const currentOffset = (offsetIdx * lineOffsetAmount) / panZoom.scale; // Scale offset
+                                const currentOffset = (offsetIdx * lineOffsetAmount) / panZoom.scale;
                                 const dx = sB.x - sA.x;
                                 const dy = sB.y - sA.y;
                                 const segLen = Math.sqrt(dx * dx + dy * dy);
@@ -821,7 +748,7 @@ function update() {
                 const scaledOffset = 8 / panZoom.scale;
 
 
-                // Draw the label
+                // label drawing
                 ctx.fillStyle = isHovered ? 'orange' : (line.color || '#000');
                 ctx.font = `bold ${scaledFontSize}px Arial`;
                 ctx.textAlign = 'center';
@@ -829,35 +756,25 @@ function update() {
                 ctx.fillText(`${line.code} - ${line.name || ''}`, midX + avgOffsetX, midY + avgOffsetY + scaledOffset);
             }
         }
-        // --- End Draw Line Name Label ---
 
-
-        ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform after drawing everything for this line
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
     });
-    // --- End Draw Lines ---
 
-    // Draw stations on top of lines
+    // draw stations on top of lines (to see)
     stations.forEach(station => {
         drawStation(station);
     });
 
-    // Draw mouse cursor crosshair (only for mouse)
+    // draw mouse cursor crosshair (only for mouse)
     drawPoint(mouse.x, mouse.y);
-
-    // Update scale display
     scaleDisplay.textContent = `Scale: ${panZoom.scale.toFixed(2)}x`;
-
-    // Request next frame
     requestAnimationFrame(update);
 }
-// *** END OF CORRECTED FUNCTION: update() ***
-
 
 const cursorCoords = document.getElementById('cursorCoords');
 
-// Update cursor coords only on mouse move
+// update cursor coords (only mouse)
 canvas.addEventListener('mousemove', function (e) {
-    // Only show if not panning/pinching (likely mouse input)
     if (isPanning || isPinching) {
         cursorCoords.style.display = 'none';
         return;
@@ -866,7 +783,6 @@ canvas.addEventListener('mousemove', function (e) {
     const x = (e.clientX - rect.left - panZoom.x) / panZoom.scale;
     const y = (e.clientY - rect.top - panZoom.y) / panZoom.scale;
 
-    // Update tooltip content and position
     cursorCoords.innerText = `x: ${Math.round(x)}, y: ${Math.round(y)}`;
     cursorCoords.style.left = `${e.clientX + 10}px`;
     cursorCoords.style.top = `${e.clientY + 10}px`;
@@ -878,65 +794,58 @@ canvas.addEventListener('mouseleave', function () {
 });
 
 
-// --- CLICK/TAP HANDLING ---
-// Use a single handler for both click and tap end
+// click/tap handling (mobile stuff)
 function handleCanvasTap(event) {
     let clickX, clickY;
     let isTouchEvent = event.type.startsWith('touch');
 
     if (isTouchEvent) {
-        // Use changedTouches for touchend
+        // touch
         if (!event.changedTouches || event.changedTouches.length === 0) return;
         const touch = event.changedTouches[0];
         const pos = getTouchPos(touch);
         clickX = pos.x;
         clickY = pos.y;
-        // Check distance moved during touch for tap validation
+        // tap validation
         const distance = Math.sqrt((clickX - mouse.downX) ** 2 + (clickY - mouse.downY) ** 2);
-        // console.log("Tap distance:", distance);
-        if (distance > 10) return; // If moved too much, it's a pan, not a tap
-    } else { // Mouse click
+        if (distance > 10) return;
+    } else {
         const bounds = canvas.getBoundingClientRect();
         clickX = event.pageX - bounds.left - scrollX;
         clickY = event.pageY - bounds.top - scrollY;
-        // Check distance for mouse click as well
+        // click
         const distance = Math.sqrt((clickX - mouse.downX) ** 2 + (clickY - mouse.downY) ** 2);
-        // console.log("Click distance:", distance);
-        if (distance > 5) return; // Prevent click on drag
+        if (distance > 5) return; 
     }
 
 
     let worldCoord = panZoom.toWorld(clickX, clickY);
 
-    // Find station near the tap/click
+    // find station where tapped (for editing)
     selectedStation = stations.find(station =>
-        Math.sqrt((station.x - worldCoord.x) ** 2 + (station.y - worldCoord.y) ** 2) < (15 / panZoom.scale) // Increase tap radius slightly, adjust with scale
+        Math.sqrt((station.x - worldCoord.x) ** 2 + (station.y - worldCoord.y) ** 2) < (15 / panZoom.scale)
     );
 
+    // edit station
     if (selectedStation) {
-        // Edit Station
         document.getElementById('stationModalTitle').textContent = 'Edit Station';
         document.getElementById('saveStation').textContent = 'Save Changes';
         document.getElementById('deleteStation').style.display = 'block';
-        document.getElementById('stationId').value = selectedStation.id; // Set hidden ID
-
+        document.getElementById('stationId').value = selectedStation.id;
         document.getElementById('stationName').value = selectedStation.name;
         document.getElementById('stationX').value = selectedStation.x.toFixed(0);
         document.getElementById('stationY').value = selectedStation.y.toFixed(0);
         document.getElementById('undergroundType').checked = selectedStation.location.includes("underground");
         document.getElementById('groundType').checked = selectedStation.location.includes("ground");
         document.getElementById('suspendedType').checked = selectedStation.location.includes("suspended");
-
-        // Show lines connected to this station
         displayConnectedLines(selectedStation.name);
 
     } else {
-        // Add New Station
+        // add new station if not selecting already existing station
         document.getElementById('stationModalTitle').textContent = 'Add Station';
         document.getElementById('saveStation').textContent = 'Save Station';
         document.getElementById('deleteStation').style.display = 'none';
-        document.getElementById('stationId').value = ''; // Clear hidden ID
-
+        document.getElementById('stationId').value = '';
         newStationWorldCoord = { x: worldCoord.x, y: worldCoord.y };
         document.getElementById('stationName').value = "";
         document.getElementById('stationX').value = newStationWorldCoord.x.toFixed(0);
@@ -944,20 +853,14 @@ function handleCanvasTap(event) {
         document.getElementById('undergroundType').checked = false;
         document.getElementById('groundType').checked = false;
         document.getElementById('suspendedType').checked = false;
-
-        // Hide connected lines modal if open
         stationLinesModal.style.display = 'none';
     }
-
     stationModal.style.display = "block";
 }
 
-// Use 'click' for mouse and rely on touchend logic for taps
+// click for mouse, touch for tap
 canvas.addEventListener('click', handleCanvasTap);
-// Add touchend listener specifically for tap detection
 canvas.addEventListener('touchend', handleCanvasTap);
-
-// --- END CLICK/TAP HANDLING ---
 
 
 document.getElementById('saveStation').addEventListener('click', function (event) {
@@ -970,7 +873,7 @@ document.getElementById('saveStation').addEventListener('click', function (event
         return;
     }
 
-    // Check for duplicate name, excluding the current station if editing
+    // check for duplicates
     if (stations.some(s => s.name === name && (stationId === '' || s.id != stationId))) {
         alert("A station with this name already exists.");
         return;
@@ -986,22 +889,23 @@ document.getElementById('saveStation').addEventListener('click', function (event
         return;
     }
 
-    if (stationId) { // Editing existing station
+    // edit station
+    if (stationId) {
         const updatedStation = stations.find(station => station.id == stationId);
         if (updatedStation) {
             updatedStation.name = name;
-            // Coordinates are read-only, no need to update from form
             updatedStation.location = selectedLocations;
         }
-    } else { // Adding new station
+    } else { 
+        // add new station
         if (!newStationWorldCoord) {
             alert("Cannot add station without coordinates. Please click on the map first.");
             return;
         }
         const newStation = {
-            id: Date.now(), // Use timestamp for a more unique ID
-            x: newStationWorldCoord.x, // Use stored coords
-            y: newStationWorldCoord.y, // Use stored coords
+            id: Date.now(),
+            x: newStationWorldCoord.x,
+            y: newStationWorldCoord.y,
             name: name,
             location: selectedLocations
         };
@@ -1010,7 +914,7 @@ document.getElementById('saveStation').addEventListener('click', function (event
     update();
     updateStationStats();
     stationModal.style.display = "none";
-    selectedStation = null; // Clear selected station
+    selectedStation = null;
     newStationWorldCoord = null;
 });
 
@@ -1018,9 +922,9 @@ document.getElementById('deleteStation').addEventListener('click', function () {
     const stationId = document.getElementById('stationId').value;
     if (!stationId) return;
 
-    // Check if the station is part of any line before deleting
+    // check if the station is part of any line before deleting
     const stationToDelete = stations.find(s => s.id == stationId);
-    if (!stationToDelete) return; // Should not happen, but safety check
+    if (!stationToDelete) return;
     const stationName = stationToDelete.name;
 
     const linesUsingStation = lines.filter(line => line.stations.includes(stationName));
@@ -1039,18 +943,19 @@ document.getElementById('deleteStation').addEventListener('click', function () {
     newStationWorldCoord = null;
 });
 
-// Line Creation/Editing Logic
+// line create/edit Logic
 addLineBtn.onclick = function () {
-    resetLineForm(); // Reset form for new line
+    resetLineForm();
     document.getElementById('lineModalTitle').textContent = 'Create Line';
     document.getElementById('saveLine').textContent = 'Save Line';
     document.getElementById('deleteLine').style.display = 'none';
-    createExpressServiceBtn.style.display = 'none'; // Hide express service button in create mode
-    editingLineIndex = null; // Not editing
-    populateTrainSelect(); // Populate train select when opening modal
+    createExpressServiceBtn.style.display = 'none';
+    editingLineIndex = null;
+    populateTrainSelect();
     lineModal.style.display = "block";
 };
 
+// reset line from after creation
 function resetLineForm() {
     document.getElementById('lineIndex').value = '';
     document.getElementById('lineName').value = '';
@@ -1060,16 +965,16 @@ function resetLineForm() {
     plusButtonsContainer.innerHTML = '<button class="plus-button">+</button>';
     selectedValues.clear();
     document.getElementById('deleteLine').style.display = 'none';
-    createExpressServiceBtn.style.display = 'none'; // Hide express service button
-    assignedTrainSelect.innerHTML = '<option value="">-- Select a Train --</option>'; // Clear and reset train select
+    createExpressServiceBtn.style.display = 'none';
+    assignedTrainSelect.innerHTML = '<option value="">-- Select a Train --</option>';
     trainQuantityInput.value = 0;
     trainQuantityInput.disabled = true;
     maxTrainQuantitySpan.textContent = '';
 }
 
-// Function to populate the train select dropdown based on line type
+// train input only has trains that match the type of the line
 function populateTrainSelect(selectedTrainName = null) {
-    assignedTrainSelect.innerHTML = '<option value="">-- Select a Train --</option>'; // Clear existing options
+    assignedTrainSelect.innerHTML = '<option value="">-- Select a Train --</option>';
     trainQuantityInput.value = 0;
     trainQuantityInput.disabled = true;
     maxTrainQuantitySpan.textContent = '';
@@ -1078,57 +983,54 @@ function populateTrainSelect(selectedTrainName = null) {
     const selectedLineTypeRadio = document.querySelector('input[name="lineType"]:checked');
     const selectedLineType = selectedLineTypeRadio ? selectedLineTypeRadio.value : null;
 
+    // no train select if no line type
     if (!selectedLineType) {
-        // If no line type is selected, disable the train select
         assignedTrainSelect.disabled = true;
         return;
     }
-
-    assignedTrainSelect.disabled = false; // Enable if a type is selected
+    assignedTrainSelect.disabled = false;
 
     const filteredTrains = trains.filter(train => train.type === selectedLineType);
 
     filteredTrains.forEach(train => {
         const option = document.createElement('option');
         option.value = train.name;
-        option.textContent = `${train.name} (Qty: ${train.quantity})`; // Display quantity
+        option.textContent = `${train.name} (Qty: ${train.quantity})`;
         if (selectedTrainName && train.name === selectedTrainName) {
             option.selected = true;
         }
         assignedTrainSelect.appendChild(option);
     });
 
-    // If a train was pre-selected (editing mode), update quantity input
+    // if train selected in edit, update
     if (selectedTrainName) {
         const selectedTrain = trains.find(train => train.name === selectedTrainName);
         if (selectedTrain) {
             trainQuantityInput.disabled = false;
             trainQuantityInput.max = selectedTrain.quantity;
             maxTrainQuantitySpan.textContent = `(Max: ${selectedTrain.quantity})`;
-            // Set the quantity input value if editing
             const currentLine = lines[editingLineIndex];
             if (currentLine && currentLine.assignedTrain === selectedTrainName) {
                 trainQuantityInput.value = currentLine.trainQuantity || 0;
             } else {
-                trainQuantityInput.value = 0; // Default to 0 if not set or train changed
+                trainQuantityInput.value = 0;
             }
         } else {
-            trainQuantityInput.value = 0; // Reset if selected train not found
+            trainQuantityInput.value = 0;
         }
     } else {
-        trainQuantityInput.value = 0; // Reset if no train selected
+        trainQuantityInput.value = 0;
     }
 }
 
-// Add event listeners to line type radio buttons to update train select
+// update train select  based on radio button value
 document.querySelectorAll('input[name="lineType"]').forEach(radio => {
     radio.addEventListener('change', () => {
-        // Pass the currently selected train (if any) to preserve selection if possible
         populateTrainSelect(assignedTrainSelect.value);
     });
 });
 
-// Add event listener to train select to update quantity input
+// update quantity input
 assignedTrainSelect.addEventListener('change', () => {
     const selectedTrainName = assignedTrainSelect.value;
     if (selectedTrainName) {
@@ -1137,7 +1039,6 @@ assignedTrainSelect.addEventListener('change', () => {
             trainQuantityInput.disabled = false;
             trainQuantityInput.max = selectedTrain.quantity;
             maxTrainQuantitySpan.textContent = `(Max: ${selectedTrain.quantity})`;
-            // Don't default to 1, keep existing value or 0
             trainQuantityInput.value = trainQuantityInput.value > 0 ? Math.min(trainQuantityInput.value, selectedTrain.quantity) : 0;
         }
     } else {
@@ -1147,23 +1048,21 @@ assignedTrainSelect.addEventListener('change', () => {
     }
 });
 
-// Save Line Button Logic
+// save line button logic
 saveLineBtn.addEventListener('click', function (event) {
-    event.preventDefault(); // Prevent default form submission
+    event.preventDefault();
 
     const lineName = document.getElementById('lineName').value.trim();
-    const lineCode = document.getElementById('lineCode').value.trim().toUpperCase(); // Store code as uppercase
+    const lineCode = document.getElementById('lineCode').value.trim().toUpperCase();
     const lineColor = document.getElementById('lineColor').value;
     const lineTypeRadio = document.querySelector('input[name="lineType"]:checked');
     const lineType = lineTypeRadio ? lineTypeRadio.value : null;
-    const assignedTrain = assignedTrainSelect.value; // Get selected train name
-    const trainQuantity = parseInt(trainQuantityInput.value, 10); // Get train quantity
-
-
+    const assignedTrain = assignedTrainSelect.value;
+    const trainQuantity = parseInt(trainQuantityInput.value, 10);
     const stationButtons = plusButtonsContainer.querySelectorAll('.plus-button span');
     const stationNames = Array.from(stationButtons).map(span => span.textContent.trim()).filter(Boolean);
 
-    // Validation
+    // validate
     if (!lineName || !lineCode || !lineType || stationNames.length < 2) {
         alert("Please fill all fields and select at least two stations.");
         return;
@@ -1174,7 +1073,7 @@ saveLineBtn.addEventListener('click', function (event) {
         return;
     }
 
-    // Validate consecutive stations
+    // make sure a station cannot appear twice in a row
     for (let i = 0; i < stationNames.length - 1; i++) {
         if (stationNames[i] === stationNames[i + 1]) {
             alert("A station cannot appear twice in a row on the same line.");
@@ -1182,7 +1081,7 @@ saveLineBtn.addEventListener('click', function (event) {
         }
     }
 
-    // Validate train assignment and quantity
+    // validate train assignment and quantity
     const availableTrainsForType = trains.filter(train => train.type === lineType);
     if (availableTrainsForType.length > 0) {
         if (!assignedTrain) {
@@ -1199,16 +1098,13 @@ saveLineBtn.addEventListener('click', function (event) {
             return;
         }
     } else {
-        // If no trains of the selected type exist, ensure no train is assigned
+        // if no trains exist of the type, no train assigned
         if (assignedTrain || trainQuantity > 0) {
             alert(`There are no trains of type "${lineType}" available to assign.`);
-            // Reset train fields if type changes and no trains are available
             assignedTrainSelect.value = "";
             trainQuantityInput.value = 0;
             trainQuantityInput.disabled = true;
             maxTrainQuantitySpan.textContent = '';
-            // Don't necessarily block saving, just clear invalid train assignment
-            // return;
         }
     }
 
@@ -1218,38 +1114,34 @@ saveLineBtn.addEventListener('click', function (event) {
         code: lineCode,
         color: lineColor,
         type: lineType,
-        stations: stationNames, // Stations are already in the correct order from the UI
-        assignedTrain: assignedTrain || null, // Store null if no train assigned
-        trainQuantity: (assignedTrain && trainQuantity > 0) ? trainQuantity : 0 // Store 0 if no train or quantity is 0/invalid
+        stations: stationNames,
+        assignedTrain: assignedTrain || null,
+        trainQuantity: (assignedTrain && trainQuantity > 0) ? trainQuantity : 0
     };
 
-    let originalLineUpdated = false; // Flag to track if an original line was updated
+    let originalLineUpdated = false;
 
-    if (editingLineIndex !== null) { // Editing existing line
-        const originalLineDataBeforeEdit = { ...lines[editingLineIndex] }; // Store original data before edit
+    if (editingLineIndex !== null) {
+        const originalLineDataBeforeEdit = { ...lines[editingLineIndex] }; // store original data before edit
 
-        // Preserve originalLineCode if it exists (for express lines)
         if (lines[editingLineIndex].originalLineCode) {
             newLineData.originalLineCode = lines[editingLineIndex].originalLineCode;
-            // If editing an express line, ensure its endpoints still match the original line's current endpoints
+            // if editing an express line make sure start and end stations are same as OG
             const originalLine = lines.find(l => l.code === newLineData.originalLineCode);
             if (originalLine) {
-                // Re-validate endpoints after potential edits (though UI should prevent changing them)
+                // revalidate endpoints
                 if (newLineData.stations[0] !== originalLine.stations[0] ||
                     newLineData.stations[newLineData.stations.length - 1] !== originalLine.stations[originalLine.stations.length - 1]) {
                     alert("Express line endpoints must match the original line's endpoints.");
-                    // Optionally revert endpoints in newLineData or just prevent saving
-                    // For now, just alert and stop
                     return;
                 }
             } else {
-                // Original line was deleted while editing? Handle this edge case
+                // errors
                 alert(`Error: Original line ${newLineData.originalLineCode} not found. Cannot save express line.`);
                 return;
             }
 
         } else {
-            // Only check for code duplicates if it's not an express line OR if the code actually changed
             if (lines[editingLineIndex].code !== newLineData.code) {
                 const existingIndexWithCode = lines.findIndex((line, index) => line.code === newLineData.code && index !== editingLineIndex);
                 if (existingIndexWithCode !== -1) {
@@ -1257,90 +1149,75 @@ saveLineBtn.addEventListener('click', function (event) {
                     return;
                 }
             }
-            originalLineUpdated = true; // Mark that an original line was potentially updated
+            originalLineUpdated = true; // OG line updated
         }
 
         lines[editingLineIndex] = newLineData;
-        console.log("Edited line saved:", newLineData); // Log the saved line
+        console.log("Edited line saved:", newLineData);
 
-        // --- CORRECTED LOGIC: Update Express Lines if Original Line Changed ---
+        // update express line if OG changed ---
         if (originalLineUpdated) {
-            const updatedOriginalLine = lines[editingLineIndex]; // The line just saved
+            const updatedOriginalLine = lines[editingLineIndex];
             const originalCode = updatedOriginalLine.code;
             const newStartStation = updatedOriginalLine.stations[0];
             const newEndStation = updatedOriginalLine.stations[updatedOriginalLine.stations.length - 1];
 
-            // Iterate through all lines to find associated express lines
+            // iterate through all lines to find express line
             lines.forEach((line, index) => {
                 if (line.originalLineCode === originalCode) {
-                    // This is an express line associated with the edited original line
-                    const currentExpressStations = [...line.stations]; // Copy current stations
-
-                    // Build the new station list, preserving intermediates
+                    const currentExpressStations = [...line.stations];
                     let newExpressStations = [];
-
-                    // Add the new start station
                     newExpressStations.push(newStartStation);
 
-                    // Add intermediate stations (excluding old start/end)
                     for (let i = 1; i < currentExpressStations.length - 1; i++) {
                         const intermediateStation = currentExpressStations[i];
-                        // Only add if it's not the new start or new end AND it still exists in the updated original line
                         if (intermediateStation !== newStartStation && intermediateStation !== newEndStation && updatedOriginalLine.stations.includes(intermediateStation)) {
                             newExpressStations.push(intermediateStation);
                         }
                     }
 
-                    // Add the new end station (only if different from start)
                     if (newStartStation !== newEndStation) {
                         newExpressStations.push(newEndStation);
                     }
 
-                    // Remove duplicates from the final list (handles cases where new start/end might have been intermediates)
+                    // remove duplicates from the final list (handles cases where new start/end might have been intermediates)
                     lines[index].stations = newExpressStations.filter((value, idx, self) => self.indexOf(value) === idx);
 
                     console.log(`Updated express line "${line.code}" endpoints and preserved intermediates based on original line "${originalCode}". New stations: ${lines[index].stations.join(', ')}`);
                 }
             });
         }
-        // --- END CORRECTED LOGIC ---
-
-    } else { // Adding new line
-        // Check for duplicate code
+    } else {
         if (lines.some(line => line.code === newLineData.code)) {
             alert(`A line with code "${lineCode}" already exists.`);
             return;
         }
         lines.push(newLineData);
-        console.log("New line added:", newLineData); // Log the new line
+        console.log("New line added:", newLineData);
     }
 
-    // If execution reaches here, validation passed and line was added/updated.
-    update(); // Redraw canvas
-    updateStationStats(); // Update stats panel
-    updateLinesUI(); // Update the list of lines on the right
-    lineModal.style.display = 'none'; // Hide the modal
-    resetLineForm(); // Reset the form fields
+    update();
+    updateStationStats();
+    updateLinesUI();
+    lineModal.style.display = 'none';
+    resetLineForm();
 });
-
 
 deleteLineBtn.addEventListener('click', function () {
     if (editingLineIndex !== null && confirm("Are you sure you want to delete this line?")) {
-        // Check if deleting an original line that has express lines
+        // check if line has express line
         const lineToDelete = lines[editingLineIndex];
-        if (!lineToDelete.originalLineCode) { // It's an original line
+        if (!lineToDelete.originalLineCode) {
             const dependentExpressLines = lines.filter(l => l.originalLineCode === lineToDelete.code);
             if (dependentExpressLines.length > 0) {
                 const expressCodes = dependentExpressLines.map(l => l.code).join(', ');
                 if (!confirm(`Deleting line "${lineToDelete.code}" will also delete its express lines: ${expressCodes}. Continue?`)) {
-                    return; // User cancelled
+                    return;
                 }
-                // Filter out the dependent express lines
                 lines = lines.filter(l => l.originalLineCode !== lineToDelete.code);
             }
         }
 
-        // Delete the target line itself (adjust index if express lines were removed before it)
         const actualIndexToDelete = lines.findIndex(l => l.code === lineToDelete.code);
         if (actualIndexToDelete !== -1) {
             lines.splice(actualIndexToDelete, 1);
@@ -1356,23 +1233,21 @@ deleteLineBtn.addEventListener('click', function () {
 });
 
 createExpressServiceBtn.addEventListener('click', function () {
-    if (editingLineIndex === null) return; // Only available when editing
+    if (editingLineIndex === null) return;
 
     const originalLine = lines[editingLineIndex];
-    expressStationsList.innerHTML = ''; // Clear previous list
+    expressStationsList.innerHTML = '';
 
     originalLine.stations.forEach(stationName => {
         const listItem = document.createElement('li');
         listItem.textContent = stationName;
-        listItem.dataset.stationName = stationName; // Store station name
+        listItem.dataset.stationName = stationName;
         listItem.addEventListener('click', () => {
             listItem.classList.toggle('selected-station');
-            // Automatically select/deselect endpoints if they are clicked
             if (stationName === originalLine.stations[0] || stationName === originalLine.stations[originalLine.stations.length - 1]) {
-                listItem.classList.add('selected-station'); // Endpoints must be selected
+                listItem.classList.add('selected-station');
             }
         });
-        // Pre-select endpoints
         if (stationName === originalLine.stations[0] || stationName === originalLine.stations[originalLine.stations.length - 1]) {
             listItem.classList.add('selected-station');
         }
@@ -1392,7 +1267,6 @@ createExpressLineBtn.addEventListener('click', function () {
         return;
     }
 
-    // Ensure endpoints are selected
     const originalLine = lines[editingLineIndex];
     const startStation = originalLine.stations[0];
     const endStation = originalLine.stations[originalLine.stations.length - 1];
@@ -1402,18 +1276,17 @@ createExpressLineBtn.addEventListener('click', function () {
     }
 
 
-    // Sort selected stations based on their order in the original line
+    // sort selected stations based on their order in the original line
     const sortedSelectedStations = originalLine.stations.filter(stationName => selectedStationNames.includes(stationName));
 
 
-    // Generate a unique code for the express line: first letter of original code + "X"
+    // line code for express line
     let expressCodeBase = `${originalLine.code.charAt(0)}X`;
     let expressCode = expressCodeBase;
     let counter = 1;
     while (lines.some(line => line.code === expressCode)) {
-        expressCode = `${expressCodeBase}${counter}`; // Try X1, X2 etc. if X is taken
-        if (expressCode.length > 2) { // Prevent overly long codes, fallback needed maybe?
-            // Fallback or error - For now, just alert
+        expressCode = `${expressCodeBase}${counter}`;
+        if (expressCode.length > 2) {
             alert("Could not generate a unique 2-character code starting with " + expressCodeBase);
             return;
         }
@@ -1424,12 +1297,12 @@ createExpressLineBtn.addEventListener('click', function () {
     const newExpressLine = {
         name: `${originalLine.name} Express`,
         code: expressCode,
-        color: originalLine.color, // Inherit color
-        type: originalLine.type,   // Inherit type
-        stations: sortedSelectedStations, // Use sorted selected stations
-        assignedTrain: originalLine.assignedTrain, // Inherit assigned train
-        trainQuantity: originalLine.trainQuantity, // Inherit train quantity
-        originalLineCode: originalLine.code // Store reference to original line
+        color: originalLine.color,
+        type: originalLine.type,
+        stations: sortedSelectedStations,
+        assignedTrain: originalLine.assignedTrain,
+        trainQuantity: originalLine.trainQuantity,
+        originalLineCode: originalLine.code
     };
 
     lines.push(newExpressLine);
@@ -1442,14 +1315,12 @@ createExpressLineBtn.addEventListener('click', function () {
 });
 
 
-// *** START OF UPDATED FUNCTION: plusButtonsContainer.addEventListener('click', ...) ***
 plusButtonsContainer.addEventListener('click', (event) => {
     const clickedButton = event.target.closest('.plus-button');
     if (!clickedButton) return;
 
-    // Only trigger if the clicked button is empty or explicitly a "+"
     if (clickedButton.textContent.trim() === '+' || clickedButton.innerHTML.trim() === '+') {
-        modalList.innerHTML = '';  // Clear the modal list content safely
+        modalList.innerHTML = ''; 
         const lineTypeRadio = document.querySelector('input[name="lineType"]:checked');
         const selectedLineType = lineTypeRadio ? lineTypeRadio.value : null;
 
@@ -1461,41 +1332,38 @@ plusButtonsContainer.addEventListener('click', (event) => {
                 originalLineStations = originalLine.stations;
             } else {
                 console.error("Original line not found when trying to add station to express line.");
-                // Optionally disable adding or alert user
             }
         }
 
         stations.forEach(item => {
-            // Filter stations by selected line type
             if (selectedLineType && !item.location.includes(selectedLineType)) return;
 
-            // If editing express, only show stations present in the original line
+            // if editing express line only show stations in the OG line
             if (isEditingExpress && !originalLineStations.includes(item.name)) {
                 return;
             }
 
-            // Check if station is already in the list (prevent duplicates)
+            // duplicate check
             const currentStationNamesInEditor = Array.from(plusButtonsContainer.querySelectorAll('.plus-button span')).map(span => span.textContent.trim());
             if (currentStationNamesInEditor.includes(item.name)) {
-                return; // Don't show already added stations in the modal
+                return;
             }
-
 
             const listItem = document.createElement('li');
             listItem.textContent = item.name;
 
+            // no same station twice in a row
             listItem.onclick = () => {
-                // Prevent adding the same station twice in a row (redundant check now, but keep for safety)
                 const currentButtons = plusButtonsContainer.querySelectorAll('.plus-button');
                 const currentStations = Array.from(currentButtons).map(btn => btn.querySelector('span')?.textContent.trim()).filter(Boolean);
 
                 if (currentStations.length > 0 && currentStations[currentStations.length - 1] === item.name) {
                     alert("Cannot add the same station twice in a row.");
-                    listModal.style.display = 'none'; // Close modal even if validation fails
+                    listModal.style.display = 'none';
                     return;
                 }
 
-                // --- Express Line Specific Adding Logic ---
+                // express line adding logic
                 if (isEditingExpress) {
                     const originalLineCode = lines[editingLineIndex].originalLineCode;
                     const originalLine = lines.find(l => l.code === originalLineCode);
@@ -1503,29 +1371,29 @@ plusButtonsContainer.addEventListener('click', (event) => {
                     if (!originalLine) {
                         console.error("Original line not found for express edit!");
                         listModal.style.display = 'none';
-                        return; // Stop if original line is missing
+                        return;
                     }
 
-                    const newItemName = item.name; // Station name to add
+                    const newItemName = item.name;
 
-                    // Get current stations in the editor (excluding the final '+')
+                    // get current stations in the editor (excluding the final '+')
                     const currentStationButtonsInEditor = Array.from(plusButtonsContainer.querySelectorAll('.plus-button span'));
                     const currentStationNamesInEditor = currentStationButtonsInEditor.map(span => span.textContent.trim());
 
-                    // Create a combined list including the new station
+                    // create a combined list including the new station
                     const potentialStations = [...currentStationNamesInEditor, newItemName];
 
-                    // Filter this list based on the original line's order
+                    // filter this list based on the OG line's order
                     const orderedStations = originalLine.stations.filter(stationName => potentialStations.includes(stationName));
 
-                    // Find the index where the new item *should be* in the ordered list
+                    // find the index where the new item should be in the ordered list
                     const insertAtIndex = orderedStations.indexOf(newItemName);
 
-                    // Find the DOM element to insert before (could be another station button or the final '+')
-                    // plusButtonsContainer.children includes the final '+' button if it exists
+                    // find element to insert before (could be another station button or the final '+')
+                    // includes the final '+' button if it exists
                     const insertBeforeButton = plusButtonsContainer.children[insertAtIndex];
 
-                    // Create the new station button element
+                    // create the new station button element
                     const button = document.createElement('button');
                     button.classList.add('plus-button');
 
@@ -1539,29 +1407,29 @@ plusButtonsContainer.addEventListener('click', (event) => {
                     nameSpan.textContent = newItemName;
 
                     const btnGroup = document.createElement('div');
-                    btnGroup.classList.add('btn-group'); // Add class for styling if needed
+                    btnGroup.classList.add('btn-group');
                     btnGroup.style.display = 'flex';
                     btnGroup.style.gap = '4px';
 
                     const upBtn = document.createElement('button');
                     upBtn.textContent = '↑';
-                    upBtn.disabled = true; // Disable for express lines
-                    upBtn.onclick = (e) => e.stopPropagation(); // Prevent default if needed
+                    upBtn.disabled = true;
+                    upBtn.onclick = (e) => e.stopPropagation();
 
                     const downBtn = document.createElement('button');
                     downBtn.textContent = '↓';
-                    downBtn.disabled = true; // Disable for express lines
+                    downBtn.disabled = true; 
                     downBtn.onclick = (e) => e.stopPropagation();
 
                     const deleteBtn = document.createElement('button');
                     deleteBtn.textContent = '×';
-                    // Enable deletion for added intermediate stations, disable for original endpoints
+                    // can delete added intermediate stations but not endpoints (express only)
                     const isEndpoint = newItemName === originalLine.stations[0] || newItemName === originalLine.stations[originalLine.stations.length - 1];
                     deleteBtn.disabled = isEndpoint;
                     deleteBtn.onclick = (e) => {
                         e.stopPropagation();
                         button.remove();
-                        // Ensure there's always a trailing "+" if all stations are removed
+                        // always "+" button
                         if (plusButtonsContainer.querySelectorAll('.plus-button span').length === 0 && plusButtonsContainer.innerHTML.trim() === '') {
                             const newPlusButton = document.createElement('button');
                             newPlusButton.classList.add('plus-button');
@@ -1578,17 +1446,15 @@ plusButtonsContainer.addEventListener('click', (event) => {
                     container.appendChild(btnGroup);
                     button.appendChild(container);
 
-                    // Insert the new button at the calculated position
                     plusButtonsContainer.insertBefore(button, insertBeforeButton);
 
-                    listModal.style.display = 'none'; // Close the modal
-                    return; // Important: Stop execution here to prevent default append logic
+                    listModal.style.display = 'none';
+                    return; // IMPORTANT: stop execution here to prevent default append logic
                 }
-                // --- End Express Line Specific Adding Logic ---
 
 
-                // --- Default Adding Logic (for non-express lines) ---
-                clickedButton.innerHTML = ''; // Clear the "+" button's content
+                // default adding logic for non-express lines
+                clickedButton.innerHTML = '';
                 const container = document.createElement('div');
                 container.style.display = 'flex';
                 container.style.alignItems = 'center';
@@ -1596,10 +1462,9 @@ plusButtonsContainer.addEventListener('click', (event) => {
                 container.style.width = '100%';
 
                 const nameSpan = document.createElement('span');
-                nameSpan.textContent = item.name; // Add the station name here
-
+                nameSpan.textContent = item.name;
                 const btnGroup = document.createElement('div');
-                btnGroup.classList.add('btn-group'); // Add class for styling if needed
+                btnGroup.classList.add('btn-group');
                 btnGroup.style.display = 'flex';
                 btnGroup.style.gap = '4px';
 
@@ -1628,7 +1493,7 @@ plusButtonsContainer.addEventListener('click', (event) => {
                 deleteBtn.onclick = (e) => {
                     e.stopPropagation();
                     clickedButton.remove();
-                    // Ensure there's always a trailing "+" if all stations are removed
+                    // always "+" button
                     if (plusButtonsContainer.querySelectorAll('.plus-button span').length === 0 && plusButtonsContainer.innerHTML.trim() === '') {
                         const newPlusButton = document.createElement('button');
                         newPlusButton.classList.add('plus-button');
@@ -1645,16 +1510,13 @@ plusButtonsContainer.addEventListener('click', (event) => {
                 container.appendChild(btnGroup);
                 clickedButton.appendChild(container);
 
-                // Add a new trailing "+" button if the one we just filled was the last one
                 if (clickedButton === plusButtonsContainer.lastElementChild) {
                     const newPlusButton = document.createElement('button');
                     newPlusButton.classList.add('plus-button');
                     newPlusButton.textContent = '+';
                     plusButtonsContainer.appendChild(newPlusButton);
                 }
-                // --- End Default Adding Logic ---
-
-                listModal.style.display = 'none'; // Close the station list modal
+                listModal.style.display = 'none'; 
             };
 
             modalList.appendChild(listItem);
@@ -1662,42 +1524,38 @@ plusButtonsContainer.addEventListener('click', (event) => {
         listModal.style.display = 'block';
     }
 });
-// *** END OF UPDATED FUNCTION: plusButtonsContainer.addEventListener('click', ...) ***
 
-
-// *** START OF UPDATED FUNCTION: updateLinesUI() ***
 function updateLinesUI() {
-    const lineListElement = document.getElementById('lineListItems'); // Renamed variable
-    if (!lineListElement) { // Check if element exists
+    const lineListElement = document.getElementById('lineListItems');
+    if (!lineListElement) { 
         console.error("Element with ID 'lineListItems' not found.");
         return;
     }
-    lineListElement.innerHTML = ''; // Clear the list
+    lineListElement.innerHTML = '';
 
     lines.forEach((line, index) => {
         const lineItem = document.createElement('li');
-        lineItem.classList.add('line-item'); // Add class for styling
+        lineItem.classList.add('line-item');
 
         const label = document.createElement('span');
-        label.textContent = `${line.code} - ${line.name || ''}`; // Display code and name
-        label.style.color = line.color || 'black'; // Apply line color to the label
+        label.textContent = `${line.code} - ${line.name || ''}`;
+        label.style.color = line.color || 'black';
         if (line.originalLineCode) {
-            label.style.fontStyle = 'italic'; // Indicate express line in the list
+            label.style.fontStyle = 'italic';
             label.title = `Express service for line ${line.originalLineCode}`;
         }
 
-        // Hover effect - less relevant for touch, but keep for mouse
+        // hover stuff
         label.addEventListener('mouseenter', () => hoveredLine = line);
         label.addEventListener('mouseleave', () => hoveredLine = null);
 
-        // Click/Tap handler to open edit modal
+        // click/tap handler to open edit modal
         const openEditModal = () => {
-            // Populate form for editing
             document.getElementById('lineModalTitle').textContent = `Edit Line: ${line.code}`;
             document.getElementById('saveLine').textContent = 'Save Changes';
             document.getElementById('deleteLine').style.display = 'inline-block'; // Show delete button
 
-            // Only show "Create Express Service" button if it's NOT an express line
+            // only show "Create Express Service" button if it's not an express line
             if (!line.originalLineCode) {
                 createExpressServiceBtn.style.display = 'inline-block';
             } else {
@@ -1705,7 +1563,7 @@ function updateLinesUI() {
             }
 
 
-            editingLineIndex = index; // Store index for saving
+            editingLineIndex = index;
 
             document.getElementById('lineName').value = line.name;
             document.getElementById('lineCode').value = line.code;
@@ -1715,19 +1573,18 @@ function updateLinesUI() {
                 r.checked = r.value === line.type;
             });
 
-            plusButtonsContainer.innerHTML = ''; // Clear previous buttons
+            plusButtonsContainer.innerHTML = '';
             selectedValues.clear();
 
-            const isExpressLine = !!line.originalLineCode; // Check if it's an express line
+            const isExpressLine = !!line.originalLineCode;
 
-            // Populate the station buttons in the modal
             line.stations.forEach((name, i) => {
                 const isEndpoint = isExpressLine && (i === 0 || i === line.stations.length - 1);
 
                 const button = document.createElement('button');
                 button.classList.add('plus-button');
                 if (isEndpoint) {
-                    button.style.borderColor = '#aaa'; // Visually indicate fixed endpoint
+                    button.style.borderColor = '#aaa';
                     button.title = "Endpoint fixed by original line";
                 }
 
@@ -1740,11 +1597,11 @@ function updateLinesUI() {
                 const nameSpan = document.createElement('span');
                 nameSpan.textContent = name;
                 if (isEndpoint) {
-                    nameSpan.style.color = '#555'; // Dim text for fixed endpoint
+                    nameSpan.style.color = '#555';
                 }
 
                 const btnGroup = document.createElement('div');
-                btnGroup.classList.add('btn-group'); // Add class for styling if needed
+                btnGroup.classList.add('btn-group');
                 btnGroup.style.display = 'flex';
                 btnGroup.style.gap = '4px';
 
@@ -1752,11 +1609,10 @@ function updateLinesUI() {
                 upBtn.classList.add("btn");
                 upBtn.classList.add("btn-outline-primary");
                 upBtn.textContent = '↑';
-                // Disable up/down for ALL stations if it's an express line
                 upBtn.disabled = isExpressLine;
                 upBtn.onclick = (e) => {
                     e.stopPropagation();
-                    if (isExpressLine) return; // Double-check disabled state
+                    if (isExpressLine) return;
                     const prev = button.previousElementSibling;
                     if (prev && prev.classList.contains('plus-button')) {
                         plusButtonsContainer.insertBefore(button, prev);
@@ -1767,11 +1623,10 @@ function updateLinesUI() {
                 downBtn.classList.add("btn");
                 downBtn.classList.add("btn-outline-primary");
                 downBtn.textContent = '↓';
-                // Disable up/down for ALL stations if it's an express line
                 downBtn.disabled = isExpressLine;
                 downBtn.onclick = (e) => {
                     e.stopPropagation();
-                    if (isExpressLine) return; // Double-check disabled state
+                    if (isExpressLine) return;
                     const next = button.nextElementSibling;
                     if (next && next.classList.contains('plus-button')) {
                         plusButtonsContainer.insertBefore(next, button);
@@ -1782,13 +1637,13 @@ function updateLinesUI() {
                 deleteBtn.classList.add("btn");
                 deleteBtn.classList.add("btn-outline-danger");
                 deleteBtn.textContent = '×';
-                // Disable delete ONLY for endpoints if it's an express line
+                // disable delete only for endpoints if it's an express line
                 deleteBtn.disabled = isEndpoint;
                 deleteBtn.onclick = (e) => {
                     e.stopPropagation();
-                    if (isEndpoint) return; // Double-check disabled state
+                    if (isEndpoint) return;
                     button.remove();
-                    // Ensure there's always a trailing "+" if all stations are removed
+                    // always "+" button (for like the 3rd time)
                     if (plusButtonsContainer.querySelectorAll('.plus-button span').length === 0 && plusButtonsContainer.innerHTML.trim() === '') {
                         const newPlusButton = document.createElement('button');
                         newPlusButton.classList.add('plus-button');
@@ -1808,68 +1663,59 @@ function updateLinesUI() {
                 plusButtonsContainer.appendChild(button);
             });
 
-            // ALWAYS Add a trailing "+" button (logic inside plusButtonsContainer listener will handle adding)
+            // ALWAYS "+" BUTTON
             const trailingPlus = document.createElement('button');
             trailingPlus.classList.add('plus-button');
             trailingPlus.textContent = '+';
             plusButtonsContainer.appendChild(trailingPlus);
 
 
-            editingLineIndex = index; // Set the index of the line being edited
-            populateTrainSelect(line.assignedTrain); // Populate with current train
-            // No need to set quantity here, populateTrainSelect handles it
-
+            editingLineIndex = index;
+            populateTrainSelect(line.assignedTrain);
             lineModal.style.display = 'block';
         };
 
-        // Add event listeners for both click and touchstart (for tap)
+        // add event listeners for both clickstart and touchstart (for tap)
         label.addEventListener('click', openEditModal);
-        label.addEventListener('touchstart', (e) => {
-            // Optional: Add a slight delay or visual feedback for touchstart
-            // This helps distinguish scroll from tap on the list
-        }, { passive: true }); // Passive if not preventing default
+        label.addEventListener('touchstart', (e) => {}, { passive: true });
         label.addEventListener('touchend', (e) => {
-            // Prevent triggering if it was likely a scroll
-            // You might need more sophisticated tap detection here if needed
             openEditModal();
-            e.preventDefault(); // Prevent potential ghost click
+            e.preventDefault();
         });
 
 
         const editBtn = document.createElement('button');
         editBtn.classList.add("btn");
         editBtn.classList.add("btn-outline-info")
-        editBtn.textContent = 'Edit'; // Changed text content to "Edit"
+        editBtn.textContent = 'Edit';
         editBtn.style.marginLeft = '8px';
         editBtn.onclick = (e) => {
-            e.stopPropagation(); // Prevent the list item click from also firing
-            openEditModal(); // Trigger the same logic
+            e.stopPropagation();
+            openEditModal();
         };
-        // Add touch listener to button as well
+        // add touch listener to button
         editBtn.addEventListener('touchend', (e) => {
             e.stopPropagation();
             openEditModal();
-            e.preventDefault(); // Prevent potential ghost click
+            e.preventDefault();
         });
 
 
         lineItem.appendChild(label);
         lineItem.appendChild(editBtn);
-        lineListElement.appendChild(lineItem); // Use the renamed variable
+        lineListElement.appendChild(lineItem);
     });
 }
-// *** END OF UPDATED FUNCTION: updateLinesUI() ***
-
 
 closeModalButton.addEventListener('click', () => {
     listModal.style.display = 'none';
 });
 
-// Display lines connected to a station
+// display lines connected to a station
 function displayConnectedLines(stationName) {
     const connectedLines = lines.filter(line => line.stations.includes(stationName));
     const stationLinesList = document.getElementById('stationLinesList');
-    stationLinesList.innerHTML = ''; // Clear previous list
+    stationLinesList.innerHTML = '';
 
     document.getElementById('connectedStationName').textContent = stationName;
 
@@ -1881,31 +1727,23 @@ function displayConnectedLines(stationName) {
         connectedLines.forEach(line => {
             const listItem = document.createElement('li');
             const stationIndex = line.stations.indexOf(stationName);
-            const stationNumber = stationIndex !== -1 ? stationIndex + 1 : '?'; // Get station number
-            listItem.textContent = `${line.code}${stationNumber} - ${line.name || ''} (${line.type})` + (line.assignedTrain ? ` - Train: ${line.assignedTrain} (x${line.trainQuantity || 0})` : ''); // Display assigned train and quantity
-            // Optional: Add click handler to highlight the line on the canvas
+            const stationNumber = stationIndex !== -1 ? stationIndex + 1 : '?';
+            listItem.textContent = `${line.code}${stationNumber} - ${line.name || ''} (${line.type})` + (line.assignedTrain ? ` - Train: ${line.assignedTrain} (x${line.trainQuantity || 0})` : '');
             listItem.style.cursor = 'pointer';
-            // Hover less relevant on touch
-            // listItem.addEventListener('mouseenter', () => hoveredLine = line);
-            // listItem.addEventListener('mouseleave', () => hoveredLine = null);
-            listItem.addEventListener('click', () => {
-                // Maybe zoom to the line or highlight it more prominently
-                // For now, just hovering provides visual feedback
-            });
+            listItem.addEventListener('click', () => {});
             stationLinesList.appendChild(listItem);
         });
     }
-
     stationLinesModal.style.display = 'block';
 }
 
 
-// Export
+// export stuff
 document.getElementById('exportBtn').addEventListener('click', () => {
     const data = {
         stations: stations,
         lines: lines,
-        trains: trains // Include trains in export
+        trains: trains
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1918,7 +1756,7 @@ document.getElementById('exportBtn').addEventListener('click', () => {
     URL.revokeObjectURL(url);
 });
 
-// Import
+// import stuff
 document.getElementById('importBtn').addEventListener('click', () => {
     document.getElementById('importInput').click();
 });
@@ -1932,8 +1770,6 @@ document.getElementById('importInput').addEventListener('change', (event) => {
         try {
             const json = JSON.parse(e.target.result);
 
-            // --- Enhanced Validation ---
-            // Basic structure validation
             if (!json || typeof json !== 'object' || !Array.isArray(json.stations) || !Array.isArray(json.lines) || !Array.isArray(json.trains)) {
                 throw new Error("Invalid file format. Missing 'stations', 'lines', or 'trains' array.");
             }
@@ -1941,7 +1777,7 @@ document.getElementById('importInput').addEventListener('change', (event) => {
             const trainNameMap = new Map(json.trains.map(train => [train.name, train]));
             const lineCodeMap = new Map(json.lines.map(line => [line.code, line]));
 
-            // Validate stations
+            // validate stations
             json.stations.forEach((station, index) => {
                 if (!(typeof station === 'object' && station !== null && typeof station.id !== 'undefined' && typeof station.x === 'number' && typeof station.y === 'number' && typeof station.name === 'string' && station.name.trim() !== '' && Array.isArray(station.location) && station.location.every(loc => typeof loc === 'string' && ['underground', 'ground', 'suspended'].includes(loc)))) {
                     throw new Error(`Invalid station data at index ${index}. Check properties (id, x, y, name, location).`);
@@ -1950,7 +1786,7 @@ document.getElementById('importInput').addEventListener('change', (event) => {
             const stationNames = json.stations.map(station => station.name);
             if (stationNames.length !== new Set(stationNames).size) throw new Error("Duplicate station names found.");
 
-            // Validate trains
+            // validate trains
             json.trains.forEach((train, index) => {
                 if (!(typeof train === 'object' && train !== null && typeof train.name === 'string' && train.name.trim() !== '' && typeof train.type === 'string' && ['underground', 'ground', 'suspended'].includes(train.type) && typeof train.quantity === 'number' && train.quantity >= 0)) {
                     throw new Error(`Invalid train data at index ${index}. Check properties (name, type, quantity).`);
@@ -1959,7 +1795,7 @@ document.getElementById('importInput').addEventListener('change', (event) => {
             const trainNames = json.trains.map(train => train.name);
             if (trainNames.length !== new Set(trainNames).size) throw new Error("Duplicate train names found.");
 
-            // Validate lines
+            // validate lines
             json.lines.forEach((line, index) => {
                 if (!(typeof line === 'object' && line !== null && typeof line.name === 'string' && typeof line.code === 'string' && line.code.length === 2 && typeof line.color === 'string' && typeof line.type === 'string' && ['underground', 'ground', 'suspended'].includes(line.type) && Array.isArray(line.stations) && line.stations.length >= 2 && line.stations.every(stationName => typeof stationName === 'string') && (line.assignedTrain === null || typeof line.assignedTrain === 'undefined' || (typeof line.assignedTrain === 'string' && trainNameMap.has(line.assignedTrain))) && (typeof line.trainQuantity === 'undefined' || (typeof line.trainQuantity === 'number' && line.trainQuantity >= 0)) && (typeof line.originalLineCode === 'undefined' || (typeof line.originalLineCode === 'string' && lineCodeMap.has(line.originalLineCode))))) {
                     throw new Error(`Invalid line data at index ${index} (Code: ${line.code}). Check properties, station count, train/quantity, originalLineCode.`);
@@ -1968,7 +1804,7 @@ document.getElementById('importInput').addEventListener('change', (event) => {
             const lineCodes = json.lines.map(line => line.code);
             if (lineCodes.length !== new Set(lineCodes).size) throw new Error("Duplicate line codes found.");
 
-            // Validate references and consistency
+            // validate references and consistency
             for (const line of json.lines) {
                 if (!line.stations.every(stationName => stationNameMap.has(stationName))) throw new Error(`Line "${line.code}" contains unknown station names.`);
                 for (let i = 0; i < line.stations.length - 1; i++) if (line.stations[i] === line.stations[i + 1]) throw new Error(`Line "${line.code}" has consecutive duplicate station: "${line.stations[i]}".`);
@@ -1986,22 +1822,19 @@ document.getElementById('importInput').addEventListener('change', (event) => {
                     if (line.type !== originalLine.type) throw new Error(`Express line "${line.code}" type does not match original line "${originalLine.code}".`);
                 }
             }
-            // --- End Enhanced Validation ---
 
-
-            // If all validation passes, load the data
+            // if OK load the data
             stations = json.stations;
             lines = json.lines;
-            trains = json.trains; // Load trains from the imported data
+            trains = json.trains;
             update();
             updateLinesUI();
             updateStationStats();
             alert("Data imported successfully!");
 
         } catch (err) {
-            alert("Import Error: " + err.message); // Display specific validation error
+            alert("Import Error: " + err.message);
         }
-        // Clear the file input so the same file can be imported again if needed
         event.target.value = null;
     };
     reader.readAsText(file);
@@ -2014,4 +1847,3 @@ document.getElementById('refocusBtn').addEventListener('click', () => {
     panZoom.y = 0;
     update();
 });
-

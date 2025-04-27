@@ -1,60 +1,40 @@
 body {
     margin: 0;
     overflow: hidden;
-    /* Prevent scrollbars */
-    /* Prevent default touch behaviors like pull-to-refresh or overscroll */
     overscroll-behavior: none;
 }
 
 canvas {
     background-color: #e0e0e0;
     display: block;
-    /* Remove custom cursor for touch devices */
     cursor: none;
-    /* Improve touch interaction performance */
     touch-action: none;
 }
 
 .modal {
     display: none;
-    /* Hidden by default */
     position: fixed;
-    /* Stay in place */
     z-index: 1000;
-    /* Ensure modals are on top */
     left: 0;
     top: 0;
     width: 100%;
-    /* Full width */
     height: 100%;
-    /* Full height */
     overflow: auto;
-    /* Enable scroll if needed */
     background-color: rgba(0, 0, 0, 0.4);
-    /* Black w/ opacity */
 }
 
 .modal-content {
     background-color: #fefefe;
     margin: 10% auto;
-    /* Adjusted margin */
     padding: 15px;
-    /* Slightly reduce padding for smaller screens */
     border: 1px solid #888;
     width: 90%;
-    /* Adjusted width for better responsiveness */
     max-width: 600px;
-    /* Reduced max-width for mobile friendliness */
     border-radius: 8px;
-    /* Added rounded corners */
     display: flex;
-    /* Use flexbox for layout */
     flex-direction: column;
-    /* Stack content vertically */
     max-height: 80vh;
-    /* Increase max-height slightly */
     overflow: hidden;
-    /* Hide default overflow, will be handled by inner content */
 }
 
 .modal-header {
@@ -69,23 +49,16 @@ canvas {
 .modal-header h2 {
     margin: 0;
     font-size: 1.1rem;
-    /* Adjust font size */
 }
 
 .modal-body {
     flex-grow: 1;
-    /* Allow body to take up available space */
     overflow-y: auto;
-    /* Add scrollbar when content overflows */
     padding-right: 10px;
-    /* Add padding to the right for the scrollbar */
     margin-bottom: 15px;
-    /* Space before buttons */
     font-size: 0.9rem;
-    /* Adjust font size */
 }
 
-/* Style labels for better spacing on mobile */
 .modal-body label {
     display: block;
     margin-bottom: 5px;
@@ -96,14 +69,12 @@ canvas {
 .modal-body input[type="number"],
 .modal-body input[type="color"],
 .modal-body select {
-    width: calc(100% - 16px);
-    /* Full width minus padding */
+    width: 80%;
     padding: 8px;
     margin-bottom: 10px;
     border: 1px solid #ccc;
     border-radius: 4px;
     box-sizing: border-box;
-    /* Include padding in width */
 }
 
 .modal-body input[type="checkbox"],
@@ -113,7 +84,6 @@ canvas {
 
 .modal-body br {
     display: none;
-    /* Remove unnecessary line breaks */
 }
 
 
@@ -122,11 +92,8 @@ canvas {
     border-top: 1px solid #eee;
     display: flex;
     justify-content: flex-end;
-    /* Align buttons to the right */
     gap: 10px;
-    /* Space between buttons */
     flex-wrap: wrap;
-    /* Allow buttons to wrap on small screens */
 }
 
 
@@ -145,18 +112,14 @@ canvas {
 
 #scaleDisplay {
     position: absolute;
-    /* Adjusted top to be below potential notch/status bar */
     top: 110px;
     left: 5px;
     background-color: rgba(255, 255, 255, 0.7);
     padding: 5px 10px;
     border-radius: 5px;
     font-size: 12px;
-    /* Smaller font for mobile */
     z-index: 10;
-    /* Ensure it's above the canvas */
     pointer-events: none;
-    /* Allows clicks to go through */
 }
 
 button:focus {
@@ -164,7 +127,6 @@ button:focus {
     box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
 }
 
-/* Style for disabled buttons */
 button:disabled {
     background-color: #ccc;
     color: #666;
@@ -174,7 +136,6 @@ button:disabled {
 
 button:disabled:hover {
     background-color: #ccc;
-    /* Keep disabled style on hover */
 }
 
 #list-modal {
@@ -189,14 +150,11 @@ button:disabled:hover {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     border-radius: 5px;
     z-index: 1001;
-    /* Ensure list modal is on top */
     width: 90%;
     max-width: 400px;
-    /* Reduced max width */
 }
 
 #modal-content {
-    /* Renamed to avoid conflict */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -217,7 +175,6 @@ button:disabled:hover {
     border-bottom: 1px solid #eee;
     transition: background-color 0.2s ease;
     font-size: 14px;
-    /* Adjust font size */
 }
 
 #modal-list li:hover {
@@ -232,56 +189,43 @@ button:disabled:hover {
     margin-bottom: 10px;
     display: flex;
     flex-direction: column;
-    /* Changed to column */
     gap: 10px;
     align-items: center;
-    /* Center the buttons */
     width: 100%;
 }
 
 .plus-button {
     padding: 8px 15px;
-    /* Adjust padding */
     cursor: pointer;
     background-color: #fff;
     color: #333;
     border: 2px solid #4CAF50;
     border-radius: 5px;
     font-size: 14px;
-    /* Adjust font size */
     transition: background-color 0.3s ease, color 0.3s ease;
     width: 100%;
-    /* Make buttons take full width */
     max-width: 300px;
-    /* Limit the maximum width */
     text-align: center;
     min-height: 38px;
-    /* Ensure consistent height */
     box-sizing: border-box;
 }
 
-/* Adjust layout within plus-button for mobile */
 .plus-button>div {
     flex-wrap: wrap;
-    /* Allow inner elements to wrap */
     gap: 5px;
 }
 
 .plus-button span {
     flex-grow: 1;
-    /* Allow span to take space */
     text-align: left;
-    /* Align text left */
     margin-right: 5px;
 }
 
 .plus-button .btn-group {
     flex-shrink: 0;
-    /* Prevent button group from shrinking */
 }
 
 .plus-button button {
-    /* Style inner buttons */
     padding: 4px 8px;
     font-size: 12px;
 }
@@ -296,7 +240,6 @@ button:disabled:hover {
     box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
 }
 
-/* Style for disabled buttons within plus-button */
 .plus-button button:disabled {
     background-color: #ccc;
     color: #666;
@@ -306,22 +249,18 @@ button:disabled:hover {
 
 #close-modal-button {
     padding: 10px 15px;
-    /* Adjust padding */
     cursor: pointer;
     background-color: #f44366;
-    /* Changed to a different red */
     color: white;
     border: none;
     border-radius: 5px;
     font-size: 14px;
-    /* Adjust font size */
     transition: background-color 0.3s ease;
     margin-top: 10px;
 }
 
 #close-modal-button:hover {
     background-color: #c62828;
-    /* Darker red on hover */
 }
 
 #close-modal-button:focus {
@@ -347,11 +286,9 @@ button:disabled:hover {
     color: #666 !important;
 }
 
-/* New styles for Station Lines Modal */
 #stationLinesModal .modal-content {
     width: 90%;
     max-width: 500px;
-    /* Adjust max width */
 }
 
 #stationLinesList {
@@ -363,7 +300,6 @@ button:disabled:hover {
     padding: 8px 0;
     border-bottom: 1px solid #eee;
     font-size: 0.9rem;
-    /* Adjust font size */
 }
 
 #stationLinesList li:last-child {
@@ -385,10 +321,8 @@ button:disabled:hover {
     justify-content: space-between;
     align-items: center;
     padding: 6px 0;
-    /* Adjust padding */
     border-bottom: 1px solid #eee;
     font-size: 13px;
-    /* Adjust font size */
 }
 
 .line-item:last-child {
@@ -399,34 +333,24 @@ button:disabled:hover {
     flex-grow: 1;
     cursor: pointer;
     padding-right: 5px;
-    /* Add some spacing between text and button */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    /* Add ellipsis if name is too long */
 }
 
 .line-item button {
     padding: 3px 6px;
-    /* Smaller padding for edit button */
     font-size: 12px;
-    /* Adjust font size */
     flex-shrink: 0;
-    /* Prevent button shrinking */
 }
 
-/* Style for train quantity input */
 #trainQuantity {
     width: 50px;
-    /* Adjust width as needed */
     margin-left: 5px;
-    /* Space between select and number input */
     padding: 6px;
-    /* Adjust padding */
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 14px;
-    /* Adjust font size */
 }
 
 #trainQuantity:focus {
@@ -438,15 +362,12 @@ button:disabled:hover {
 #trainAssignment {
     display: flex;
     flex-wrap: wrap;
-    /* Allow wrapping */
     align-items: center;
     gap: 5px;
-    /* Add gap */
 }
 
 #trainAssignment label {
     margin-bottom: 0;
-    /* Remove bottom margin for inline labels */
 }
 
 #maxTrainQuantity {
@@ -455,10 +376,8 @@ button:disabled:hover {
 }
 
 
-/* Styles for the Express Service Modal */
 #expressServiceModal .modal-content {
     max-width: 400px;
-    /* Adjust max width */
 }
 
 #expressStationsList {
@@ -472,7 +391,6 @@ button:disabled:hover {
     border-bottom: 1px solid #eee;
     transition: background-color 0.2s ease;
     font-size: 14px;
-    /* Adjust font size */
 }
 
 #expressStationsList li:hover {
@@ -484,63 +402,42 @@ button:disabled:hover {
     color: white;
 }
 
-/* Hide cursor coordinate display on small screens */
 #cursorCoords {
     display: none;
 }
 
-/* Stats Panel Adjustments */
 #statsPanel {
     position: fixed;
-    /* Use fixed for stats panel too */
     bottom: env(safe-area-inset-bottom, 0px);
-    /* Adjust for safe area */
     left: 0;
     right: 0;
     background: #333;
     color: #f2f2f2;
     font-family: Arial, sans-serif;
     font-size: 11px;
-    /* Reduce font size */
     padding: 5px 10px;
-    /* Reduce padding */
     display: flex;
-    /* Use flexbox for better wrapping */
     flex-wrap: wrap;
-    /* Allow wrapping */
     gap: 5px 15px;
-    /* Row and column gap */
     z-index: 10;
     border-top: 1px solid #444;
 }
 
 #statsPanel>div {
-    /* Style direct children (the rows) */
     display: flex;
     gap: 10px;
-    /* Space between items in a row */
     flex-wrap: wrap;
-    /* Allow items to wrap within a row */
     align-items: center;
 }
 
 #statsPanel strong {
     white-space: nowrap;
-    /* Prevent label wrapping */
-}
-
-
-/* Media query for general mobile adjustments */
-@media (max-width: 768px) {
-    /* Further adjustments if needed for tablets */
 }
 
 @media (max-width: 600px) {
 
-    /* Specific adjustments for smaller phones */
     .modal-content {
         margin: 5% auto;
-        /* Reduce top margin */
         padding: 10px;
     }
 
