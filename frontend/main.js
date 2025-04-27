@@ -680,7 +680,7 @@ function update() {
                                 const angle = Math.atan2(stationB.y - stationA.y, stationB.x - stationA.x);
                                 const scaledFontSize = 12 / panZoom.scale;
                                 const scaledLabelOffset = -6 / panZoom.scale;
-                                
+
                                 ctx.save();
                                 ctx.translate(midX, midY);
                                 ctx.rotate(angle);
@@ -815,7 +815,7 @@ function handleCanvasTap(event) {
         clickY = event.pageY - bounds.top - scrollY;
         // click
         const distance = Math.sqrt((clickX - mouse.downX) ** 2 + (clickY - mouse.downY) ** 2);
-        if (distance > 5) return; 
+        if (distance > 5) return;
     }
 
 
@@ -833,6 +833,7 @@ function handleCanvasTap(event) {
         document.getElementById('deleteStation').style.display = 'block';
         document.getElementById('stationId').value = selectedStation.id;
         document.getElementById('stationName').value = selectedStation.name;
+        // load existing coords into fields but allow editing
         document.getElementById('stationX').value = selectedStation.x.toFixed(0);
         document.getElementById('stationY').value = selectedStation.y.toFixed(0);
         document.getElementById('undergroundType').checked = selectedStation.location.includes("underground");
@@ -846,8 +847,9 @@ function handleCanvasTap(event) {
         document.getElementById('saveStation').textContent = 'Save Station';
         document.getElementById('deleteStation').style.display = 'none';
         document.getElementById('stationId').value = '';
-        newStationWorldCoord = { x: worldCoord.x, y: worldCoord.y };
+        newStationWorldCoord = { x: worldCoord.x, y: worldCoord.y }; // store original click coords
         document.getElementById('stationName').value = "";
+        // set initial coords from click, but allow editing
         document.getElementById('stationX').value = newStationWorldCoord.x.toFixed(0);
         document.getElementById('stationY').value = newStationWorldCoord.y.toFixed(0);
         document.getElementById('undergroundType').checked = false;
@@ -867,6 +869,9 @@ document.getElementById('saveStation').addEventListener('click', function (event
     event.preventDefault();
     const name = document.getElementById('stationName').value.trim();
     const stationId = document.getElementById('stationId').value; // Get ID
+    // read coords from input fields
+    const xValue = document.getElementById('stationX').value;
+    const yValue = document.getElementById('stationY').value;
 
     if (!name) {
         alert("Station name is required.");
@@ -876,6 +881,14 @@ document.getElementById('saveStation').addEventListener('click', function (event
     // check for duplicates
     if (stations.some(s => s.name === name && (stationId === '' || s.id != stationId))) {
         alert("A station with this name already exists.");
+        return;
+    }
+
+    // validate coords
+    const x = parseFloat(xValue);
+    const y = parseFloat(yValue);
+    if (isNaN(x) || isNaN(y)) {
+        alert("Please enter valid numeric coordinates for X and Y.");
         return;
     }
 
@@ -895,17 +908,17 @@ document.getElementById('saveStation').addEventListener('click', function (event
         if (updatedStation) {
             updatedStation.name = name;
             updatedStation.location = selectedLocations;
+            // update coords from input fields
+            updatedStation.x = x;
+            updatedStation.y = y;
         }
-    } else { 
+    } else {
         // add new station
-        if (!newStationWorldCoord) {
-            alert("Cannot add station without coordinates. Please click on the map first.");
-            return;
-        }
         const newStation = {
             id: Date.now(),
-            x: newStationWorldCoord.x,
-            y: newStationWorldCoord.y,
+            // use coords from input fields
+            x: x,
+            y: y,
             name: name,
             location: selectedLocations
         };
@@ -961,7 +974,11 @@ function resetLineForm() {
     document.getElementById('lineName').value = '';
     document.getElementById('lineCode').value = '';
     document.getElementById('lineColor').value = '#000000';
-    document.querySelectorAll('input[name="lineType"]').forEach(r => r.checked = false);
+    // enable radios when resetting
+    document.querySelectorAll('input[name="lineType"]').forEach(r => {
+        r.checked = false;
+        r.disabled = false;
+    });
     plusButtonsContainer.innerHTML = '<button class="plus-button">+</button>';
     selectedValues.clear();
     document.getElementById('deleteLine').style.display = 'none';
@@ -1009,9 +1026,9 @@ function populateTrainSelect(selectedTrainName = null) {
             trainQuantityInput.disabled = false;
             trainQuantityInput.max = selectedTrain.quantity;
             maxTrainQuantitySpan.textContent = `(Max: ${selectedTrain.quantity})`;
-            const currentLine = lines[editingLineIndex];
-            if (currentLine && currentLine.assignedTrain === selectedTrainName) {
-                trainQuantityInput.value = currentLine.trainQuantity || 0;
+            // check if editingLineIndex is valid before accessing lines array
+            if (editingLineIndex !== null && lines[editingLineIndex] && lines[editingLineIndex].assignedTrain === selectedTrainName) {
+                trainQuantityInput.value = lines[editingLineIndex].trainQuantity || 0;
             } else {
                 trainQuantityInput.value = 0;
             }
@@ -1026,7 +1043,10 @@ function populateTrainSelect(selectedTrainName = null) {
 // update train select  based on radio button value
 document.querySelectorAll('input[name="lineType"]').forEach(radio => {
     radio.addEventListener('change', () => {
-        populateTrainSelect(assignedTrainSelect.value);
+        // only populate if not disabled (i.e., not editing express line)
+        if (!radio.disabled) {
+            populateTrainSelect(assignedTrainSelect.value);
+        }
     });
 });
 
@@ -1056,7 +1076,13 @@ saveLineBtn.addEventListener('click', function (event) {
     const lineCode = document.getElementById('lineCode').value.trim().toUpperCase();
     const lineColor = document.getElementById('lineColor').value;
     const lineTypeRadio = document.querySelector('input[name="lineType"]:checked');
-    const lineType = lineTypeRadio ? lineTypeRadio.value : null;
+    // if editing express, get type from original line data, otherwise from radio
+    let lineType;
+    if (editingLineIndex !== null && lines[editingLineIndex] && lines[editingLineIndex].originalLineCode) {
+        lineType = lines[editingLineIndex].type; // use existing type for express
+    } else {
+        lineType = lineTypeRadio ? lineTypeRadio.value : null; // get from radio for normal/new
+    }
     const assignedTrain = assignedTrainSelect.value;
     const trainQuantity = parseInt(trainQuantityInput.value, 10);
     const stationButtons = plusButtonsContainer.querySelectorAll('.plus-button span');
@@ -1113,7 +1139,7 @@ saveLineBtn.addEventListener('click', function (event) {
         name: lineName,
         code: lineCode,
         color: lineColor,
-        type: lineType,
+        type: lineType, // use the determined line type
         stations: stationNames,
         assignedTrain: assignedTrain || null,
         trainQuantity: (assignedTrain && trainQuantity > 0) ? trainQuantity : 0
@@ -1134,6 +1160,11 @@ saveLineBtn.addEventListener('click', function (event) {
                     newLineData.stations[newLineData.stations.length - 1] !== originalLine.stations[originalLine.stations.length - 1]) {
                     alert("Express line endpoints must match the original line's endpoints.");
                     return;
+                }
+                // ensure type still matches original (should be guaranteed by disabled radios, but double-check)
+                if (newLineData.type !== originalLine.type) {
+                    alert("Express line type must match the original line's type.");
+                    newLineData.type = originalLine.type; // force match just in case
                 }
             } else {
                 // errors
@@ -1183,7 +1214,10 @@ saveLineBtn.addEventListener('click', function (event) {
                     // remove duplicates from the final list (handles cases where new start/end might have been intermediates)
                     lines[index].stations = newExpressStations.filter((value, idx, self) => self.indexOf(value) === idx);
 
-                    console.log(`Updated express line "${line.code}" endpoints and preserved intermediates based on original line "${originalCode}". New stations: ${lines[index].stations.join(', ')}`);
+                    // also update the type of the express line if the original changed
+                    lines[index].type = updatedOriginalLine.type;
+
+                    console.log(`Updated express line "${line.code}" endpoints, type, and preserved intermediates based on original line "${originalCode}". New stations: ${lines[index].stations.join(', ')}`);
                 }
             });
         }
@@ -1320,11 +1354,11 @@ plusButtonsContainer.addEventListener('click', (event) => {
     if (!clickedButton) return;
 
     if (clickedButton.textContent.trim() === '+' || clickedButton.innerHTML.trim() === '+') {
-        modalList.innerHTML = ''; 
+        modalList.innerHTML = '';
         const lineTypeRadio = document.querySelector('input[name="lineType"]:checked');
         const selectedLineType = lineTypeRadio ? lineTypeRadio.value : null;
 
-        const isEditingExpress = editingLineIndex !== null && lines[editingLineIndex].originalLineCode;
+        const isEditingExpress = editingLineIndex !== null && lines[editingLineIndex]?.originalLineCode; // added safe check
         let originalLineStations = [];
         if (isEditingExpress) {
             const originalLine = lines.find(l => l.code === lines[editingLineIndex].originalLineCode);
@@ -1336,7 +1370,8 @@ plusButtonsContainer.addEventListener('click', (event) => {
         }
 
         stations.forEach(item => {
-            if (selectedLineType && !item.location.includes(selectedLineType)) return;
+            // check line type compatibility unless editing express (type is fixed)
+            if (!isEditingExpress && selectedLineType && !item.location.includes(selectedLineType)) return;
 
             // if editing express line only show stations in the OG line
             if (isEditingExpress && !originalLineStations.includes(item.name)) {
@@ -1418,7 +1453,7 @@ plusButtonsContainer.addEventListener('click', (event) => {
 
                     const downBtn = document.createElement('button');
                     downBtn.textContent = '↓';
-                    downBtn.disabled = true; 
+                    downBtn.disabled = true;
                     downBtn.onclick = (e) => e.stopPropagation();
 
                     const deleteBtn = document.createElement('button');
@@ -1516,7 +1551,7 @@ plusButtonsContainer.addEventListener('click', (event) => {
                     newPlusButton.textContent = '+';
                     plusButtonsContainer.appendChild(newPlusButton);
                 }
-                listModal.style.display = 'none'; 
+                listModal.style.display = 'none';
             };
 
             modalList.appendChild(listItem);
@@ -1527,7 +1562,7 @@ plusButtonsContainer.addEventListener('click', (event) => {
 
 function updateLinesUI() {
     const lineListElement = document.getElementById('lineListItems');
-    if (!lineListElement) { 
+    if (!lineListElement) {
         console.error("Element with ID 'lineListItems' not found.");
         return;
     }
@@ -1551,17 +1586,14 @@ function updateLinesUI() {
 
         // click/tap handler to open edit modal
         const openEditModal = () => {
+            const isExpressLine = !!line.originalLineCode;
+
             document.getElementById('lineModalTitle').textContent = `Edit Line: ${line.code}`;
             document.getElementById('saveLine').textContent = 'Save Changes';
             document.getElementById('deleteLine').style.display = 'inline-block'; // Show delete button
 
             // only show "Create Express Service" button if it's not an express line
-            if (!line.originalLineCode) {
-                createExpressServiceBtn.style.display = 'inline-block';
-            } else {
-                createExpressServiceBtn.style.display = 'none';
-            }
-
+            createExpressServiceBtn.style.display = isExpressLine ? 'none' : 'inline-block';
 
             editingLineIndex = index;
 
@@ -1569,14 +1601,15 @@ function updateLinesUI() {
             document.getElementById('lineCode').value = line.code;
             document.getElementById('lineColor').value = line.color;
 
+            // set line type radio buttons and disable if express
             document.querySelectorAll('input[name="lineType"]').forEach(r => {
                 r.checked = r.value === line.type;
+                // disable radios if it's an express line
+                r.disabled = isExpressLine;
             });
 
             plusButtonsContainer.innerHTML = '';
             selectedValues.clear();
-
-            const isExpressLine = !!line.originalLineCode;
 
             line.stations.forEach((name, i) => {
                 const isEndpoint = isExpressLine && (i === 0 || i === line.stations.length - 1);
@@ -1609,7 +1642,7 @@ function updateLinesUI() {
                 upBtn.classList.add("btn");
                 upBtn.classList.add("btn-outline-primary");
                 upBtn.textContent = '↑';
-                upBtn.disabled = isExpressLine;
+                upBtn.disabled = isExpressLine; // disable up/down for express
                 upBtn.onclick = (e) => {
                     e.stopPropagation();
                     if (isExpressLine) return;
@@ -1623,7 +1656,7 @@ function updateLinesUI() {
                 downBtn.classList.add("btn");
                 downBtn.classList.add("btn-outline-primary");
                 downBtn.textContent = '↓';
-                downBtn.disabled = isExpressLine;
+                downBtn.disabled = isExpressLine; // disable up/down for express
                 downBtn.onclick = (e) => {
                     e.stopPropagation();
                     if (isExpressLine) return;
