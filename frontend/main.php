@@ -72,16 +72,23 @@
                     <input type="number" id="stationY" name="stationY" step="1" readonly>
 
                     <label>Station Type:</label>
-                    <div> <input type="checkbox" id="undergroundType" name="stationType" value="underground">
-                        <label for="undergroundType">Underground</label>
+                    <div> 
+                        <label for="undergroundType">
+                            <input type="checkbox" id="undergroundType" name="stationType" value="underground">
+                            Underground
+                        </label>
                     </div>
                     <div>
-                        <input type="checkbox" id="groundType" name="stationType" value="ground">
-                        <label for="groundType">Ground</label>
+                        <label for="groundType">
+                            <input type="checkbox" id="groundType" name="stationType" value="ground">
+                            Ground
+                        </label>
                     </div>
                     <div>
-                        <input type="checkbox" id="suspendedType" name="stationType" value="suspended">
-                        <label for="suspendedType">Suspended</label>
+                        <label for="suspendedType">
+                            <input type="checkbox" id="suspendedType" name="stationType" value="suspended">
+                            Suspended
+                        </label>
                     </div>
                 </form>
             </div>
@@ -113,16 +120,22 @@
 
                     <label>Line Type:</label>
                     <div>
-                        <input type="radio" id="undergroundLine" name="lineType" value="underground">
-                        <label for="undergroundLine">Underground</label>
+                        <label for="undergroundLine">
+                            <input type="radio" id="undergroundLine" name="lineType" value="underground">
+                            Underground
+                        </label>
                     </div>
-                    <div>
-                        <input type="radio" id="groundLine" name="lineType" value="ground">
-                        <label for="groundLine">Ground</label>
+                    <div> 
+                        <label for="groundLine">
+                            <input type="radio" id="groundLine" name="lineType" value="ground">
+                            Ground
+                        </label>
                     </div>
-                    <div>
-                        <input type="radio" id="suspendedLine" name="lineType" value="suspended">
-                        <label for="suspendedLine">Suspended</label>
+                    <div>  
+                        <label for="suspendedLine">
+                            <input type="radio" id="suspendedLine" name="lineType" value="suspended">
+                            Suspended
+                        </label>
                     </div>
 
                     <div id="trainAssignment">
