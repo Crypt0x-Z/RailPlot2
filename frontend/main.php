@@ -54,7 +54,6 @@
     <canvas id="canvas" width="100%" height="100%"></canvas>
     <div id="scaleDisplay">Scale: 1.00x</div>
 
-
     <div id="stationModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -189,7 +188,6 @@
         </div>
     </div>
 
-
     <div id="cursorCoords" style="
     position: absolute;
     pointer-events: none;
@@ -215,10 +213,6 @@
             </div>
         </div>
     </div>
-
-
-
-
 
     <div id="statsPanel">
         <div>

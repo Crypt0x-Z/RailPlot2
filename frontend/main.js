@@ -1,3 +1,4 @@
+//canvas stuff
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const scaleDisplay = document.getElementById('scaleDisplay');
@@ -15,46 +16,36 @@ const closeExpressServiceModalBtn = document.querySelector('.express-service-mod
 const expressStationsList = document.getElementById('expressStationsList');
 const createExpressLineBtn = document.getElementById('createExpressLineBtn');
 
-// --- Touch Interaction State Variables ---
-let isPanning = false;
-let isPinching = false;
-let lastTouchX = 0;
-let lastTouchY = 0;
-let initialPinchDistance = 0;
-let pinchCenterX = 0;
-let pinchCenterY = 0;
-let lastTapTime = 0;
-const doubleTapDelay = 300; // ms delay for double tap detection (optional)
-// --- End Touch Interaction State Variables ---
+// mobile canvas stuff
+var isPanning = false;
+var isPinching = false;
+var lastTouchX = 0;
+var lastTouchY = 0;
+var initialPinchDistance = 0;
+var pinchCenterX = 0;
+var pinchCenterY = 0;
+var lastTapTime = 0;
+const doubleTapDelay = 300; // checks for double taps in mobile
 
-
+// scaling stuff
 const mouse = { x: 0, y: 0, button: false, wheel: 0, lastX: 0, lastY: 0, drag: false, downX: 0, downY: 0 };
 const gridLimit = 64;
 const gridSize = 128;
 const scaleRate = 1.02;
 const topLeft = { x: 0, y: 0 };
-const lineOffsetAmount = 8; // Amount to offset overlapping lines
+const lineOffsetAmount = 8; // line overlap
+var zoomDisabled = 0;
 
-let stations = [];
-let zoomDisabled = 0; // 0: none, 1: zoom in, -1: zoom out
-let selectedStation = null;
-let newStationWorldCoord = null;
-let lines = [];
-let hoveredLine = null;
-let editingLineIndex = null; // To track which line is being edited
+// lists (duh)
+var stations = [];
+var lines = [];
+var trains = [];
 
-// Sample trains data with quantity
-let trains = [
-    { name: "Underground Express", type: "underground", quantity: 5 },
-    { name: "Ground Commuter", type: "ground", quantity: 10 },
-    { name: "Suspended Shuttle", type: "suspended", quantity: 3 },
-    { name: "Another Underground", type: "underground", quantity: 7 },
-    { name: "Fast Ground", type: "ground", quantity: 12 },
-    { name: "Sky Train", type: "suspended", quantity: 4 },
-    { name: "Deep Metro", type: "underground", quantity: 6 },
-    { name: "Surface Runner", type: "ground", quantity: 8 }
-];
-
+// station select
+var selectedStation = null;
+var newStationWorldCoord = null;
+var hoveredLine = null;
+var editingLineIndex = null; // which line is being edited
 
 const newItemInput = document.getElementById('new-item');
 const addButton = document.getElementById('add-button');
@@ -63,10 +54,10 @@ const listModal = document.getElementById('list-modal');
 const modalList = document.getElementById('modal-list');
 const closeModalButton = document.getElementById('close-modal-button');
 const plusButtonsContainer = document.getElementById('plus-buttons-container');
-let selectedValues = new Set();
-let recentlySelected = null;
+var selectedValues = new Set();
+var recentlySelected = null;
 
-// Get the modals and close buttons
+// modal indentify
 const stationModal = document.getElementById("stationModal");
 const lineModal = document.getElementById("addLineModal"); // Renamed for clarity
 const stationLinesModal = document.getElementById("stationLinesModal");
@@ -124,7 +115,7 @@ canvas.addEventListener('mouseleave', () => {
 });
 
 canvas.addEventListener('mouseenter', () => {
-    // canvas.style.cursor = 'none'; // Re-enable custom cursor if desired for mouse
+    canvas.style.cursor = 'none'; // Re-enable custom cursor if desired for mouse
 });
 
 function updateStationStats() {

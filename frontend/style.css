@@ -10,7 +10,7 @@ canvas {
     background-color: #e0e0e0;
     display: block;
     /* Remove custom cursor for touch devices */
-    /* cursor: none; */
+    cursor: none;
     /* Improve touch interaction performance */
     touch-action: none;
 }
@@ -134,7 +134,7 @@ canvas {
     color: #aaa;
     font-size: 28px;
     font-weight: bold;
-    cursor: pointer;
+    cursor: none;
 }
 
 .close:hover,
@@ -213,7 +213,7 @@ button:disabled:hover {
 
 #modal-list li {
     padding: 10px;
-    cursor: pointer;
+    cursor: none;
     border-bottom: 1px solid #eee;
     transition: background-color 0.2s ease;
     font-size: 14px;
@@ -242,7 +242,7 @@ button:disabled:hover {
 .plus-button {
     padding: 8px 15px;
     /* Adjust padding */
-    cursor: pointer;
+    cursor: none;
     background-color: #fff;
     color: #333;
     border: 2px solid #4CAF50;
@@ -307,7 +307,7 @@ button:disabled:hover {
 #close-modal-button {
     padding: 10px 15px;
     /* Adjust padding */
-    cursor: pointer;
+    cursor: none;
     background-color: #f44366;
     /* Changed to a different red */
     color: white;
@@ -397,7 +397,7 @@ button:disabled:hover {
 
 .line-item span {
     flex-grow: 1;
-    cursor: pointer;
+    cursor: none;
     padding-right: 5px;
     /* Add some spacing between text and button */
     white-space: nowrap;
@@ -468,7 +468,7 @@ button:disabled:hover {
 
 #expressStationsList li {
     padding: 10px;
-    cursor: pointer;
+    cursor: none;
     border-bottom: 1px solid #eee;
     transition: background-color 0.2s ease;
     font-size: 14px;
