@@ -15,44 +15,49 @@ class TrainController extends Controller
 
     public function store(Request $request) {
         try {
-            $request -> validate([
+            $validated = $request->validate([
                 "name" => "required|string",
-                "capacity" => "required|float",
+                "capacity" => "required|numeric",
                 "type" => "required|string"
             ]);
-        } catch (ValidationException $th) {
-            return response()->json(["success" => false, "message" => "failed" -> $th -> errors()], 200, ["Access-Control-Allow-Origin" => "*"], JSON_UNESCAPED_UNICODE);
+        } catch (ValidationException $e) {
+            return response()->json([
+                "success" => false,
+                "message" => "failed",
+                "errors" => $e->errors()
+            ], 422, ["Access-Control-Allow-Origin" => "*"], JSON_UNESCAPED_UNICODE);
         }
 
-        Train::create([
-            "name" => $request -> name,
-            "capacity" => $request -> capacity,
-            "type" => $request -> type
-        ]);
-        return response()->json(["success" => true, "message" => "success"], 200, ["Access-Control-Allow-Origin" => "*"], JSON_UNESCAPED_UNICODE);
-    }
+        Train::create($validated);
 
-    public function destroy($id){
-        $trains = Train::findOrFail($id);
-        $trains -> delete();
+        return response()->json(["success" => true, "message" => "Train created"], 201, ["Access-Control-Allow-Origin" => "*"], JSON_UNESCAPED_UNICODE);
     }
 
     public function update(Request $request, $id) {
         try {
-            $request -> validate([
+            $validated = $request->validate([
                 "name" => "required|string",
-                "capacity" => "required|float",
+                "capacity" => "required|numeric",
                 "type" => "required|string"
             ]);
         } catch (ValidationException $th) {
-            return response()->json(["success" => false, "message" => "failed" -> $th -> errors()], 200, ["Access-Control-Allow-Origin" => "*"], JSON_UNESCAPED_UNICODE);
+            return response()->json([
+                "success" => false,
+                "message" => "failed",
+                "errors" => $th->errors()
+            ], 422, ["Access-Control-Allow-Origin" => "*"], JSON_UNESCAPED_UNICODE);
         }
-        $trains = Train::findOrFail($id);
-        $trains -> update([
-            "name" => $request -> name,
-            "capacity" => $request -> capacity,
-            "type" => $request -> type
-        ]);
-        return response()->json(["success" => true, "message" => "success"], 200, ["Access-Control-Allow-Origin" => "*"], JSON_UNESCAPED_UNICODE);
+
+        $train = Train::findOrFail($id);
+        $train->update($validated);
+
+        return response()->json(["success" => true, "message" => "Train updated"], 200, ["Access-Control-Allow-Origin" => "*"], JSON_UNESCAPED_UNICODE);
+    }
+
+    public function destroy($id) {
+        $train = Train::findOrFail($id);
+        $train->delete();
+
+        return response()->json(["success" => true, "message" => "Train deleted"], 200, ["Access-Control-Allow-Origin" => "*"], JSON_UNESCAPED_UNICODE);
     }
 }

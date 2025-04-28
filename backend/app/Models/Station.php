@@ -1,14 +1,21 @@
 <?php
 
 namespace App\Models;
-use App\Models\Line;
+
 use Illuminate\Database\Eloquent\Model;
 
 class Station extends Model
 {
-    protected $fillable = ["station_name", "x_coord", "y_coord", "type"];
+    protected $fillable = ['name', 'x', 'y', 'location'];
 
-    public function lines(){
-        return $this->belongsToMany(Line::class);
+    protected $casts = [
+        'location' => 'array',
+    ];
+    
+
+    public function lines()
+    {
+        return $this->belongsToMany(Line::class, 'station_line');
     }
+    
 }

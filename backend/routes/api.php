@@ -6,21 +6,21 @@ use App\Http\Controllers\TrainController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
+Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
     return $request->user();
-})->middleware('auth:sanctum');
+});
 
-Route::get("/stations", [StationController::Class, "index"]);
-Route::post("/stations", [StationController::Class, "store"]);
-Route::put("/stations/{id}", [StationController::Class, "update"]);
-Route::delete("/stations/{id}", [StationController::Class, "destroy"]);
+Route::get("/stations", [StationController::class, "index"]);
+Route::post("/stations", [StationController::class, "store"]);
+Route::put("/stations/{id}", [StationController::class, "update"]);
+Route::delete("/stations/{id}", [StationController::class, "destroy"]);
 
-Route::get("/lines", [LineController::Class, "index"]);
-Route::post("/lines", [LineController::Class, "store"]);
-Route::put("/lines/{id}", [LineController::Class, "update"]);
-Route::delete("/lines/{id}", [LineController::Class, "destroy"]);
+Route::get("/lines", [LineController::class, "index"]);
+Route::post("/lines", [LineController::class, "store"]);
+Route::put("/lines/{id}", [LineController::class, "update"]);
+Route::delete("/lines/{id}", [LineController::class, "destroy"]);
 
-Route::get("/trains", [TrainController::Class, "index"]);
-Route::post("/trains", [TrainController::Class, "store"]);
-Route::put("/trains/{id}", [TrainController::Class, "update"]);
-Route::delete("/trains/{id}", [TrainController::Class, "destroy"]);
+Route::get("/trains", [TrainController::class, "index"]);
+Route::post("/trains", [TrainController::class, "store"]);
+Route::put("/trains/{id}", [TrainController::class, "update"]);
+Route::delete("/trains/{id}", [TrainController::class, "destroy"]);
