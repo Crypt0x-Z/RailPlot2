@@ -1,25 +1,13 @@
-{{-- You can keep or remove this @extends based on how you use this file --}}
-{{-- @extends('layouts.admin') --}}
-
-{{-- Remove @section if not using @extends --}}
-{{-- @section('content') --}}
-
-{{-- Full HTML structure for standalone styling --}}
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-
-    {{-- Include Bootstrap CSS via CDN --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    {{-- Include Bootstrap Icons CSS --}}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <title>{{ __('Train Management') }} - {{ config('app.name', 'Laravel') }}</title>
-
     <style>
-        /* Apply gradient background directly to body */
         html, body {
             min-height: 100%;
         }
@@ -35,9 +23,9 @@
             padding-left: 1rem;
             padding-right: 1rem;
         }
-        /* Style the main card */
+
         .train-management-card {
-            max-width: 1100px; /* Wider card for forms/tables */
+            max-width: 1100px;
             width: 100%;
             border-radius: 0.75rem;
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
@@ -50,11 +38,11 @@
             display: flex;
             flex-direction: column;
         }
-         /* Make card body scrollable */
+
         .train-management-card .card-body {
             overflow-y: auto;
         }
-        /* Style table header */
+
         .train-management-card .table > thead {
             background-color: rgba(233, 236, 239, 0.8);
             color: #212529;
@@ -65,72 +53,64 @@
          .train-management-card .table th {
             border-bottom-width: 1px;
             border-color: rgba(0, 0, 0, 0.1);
-            white-space: nowrap; /* Prevent header text wrapping */
+            white-space: nowrap; 
          }
-        /* Table row text */
+
          .train-management-card tbody tr td {
             color: #212529;
             border-color: rgba(0, 0, 0, 0.08);
-            vertical-align: middle; /* Align cell content vertically */
+            vertical-align: middle;
          }
-         /* Striped rows */
+
          .train-management-card .table-striped > tbody > tr:nth-of-type(odd) > * {
             background-color: rgba(0, 0, 0, 0.03);
             color: #212529;
          }
-         /* Card Headings */
+
          .train-management-card .card-title {
             color: #343a40;
          }
          .train-management-card .card-subtitle {
             color: #495057;
          }
-         /* Section styling */
+
          .management-section {
             border: 1px solid rgba(0,0,0,.1);
             border-radius: 0.5rem;
             padding: 1.5rem;
             margin-bottom: 2rem;
-            background-color: rgba(255,255,255,0.5); /* Slightly different background for sections */
+            background-color: rgba(255,255,255,0.5);
          }
          .management-section h2 {
              margin-top: 0;
              margin-bottom: 1.5rem;
              color: #343a40;
          }
-         /* Form control styling */
+
          .form-control-sm { height: calc(1.5em + .5rem + 2px); padding: .25rem .5rem; font-size: .875rem; } /* Ensure consistent small size */
          .form-select-sm { height: calc(1.5em + .5rem + 2px); padding: .25rem 1.5rem .25rem .5rem; font-size: .875rem; background-position: right .5rem center;}
          td .form-control-sm, td .form-select-sm {
-             min-width: 120px; /* Minimum width for inputs in table */
+             min-width: 120px;
          }
 
-         /* Footer button container styling */
          .footer-actions-container {
-            border-top: 1px solid rgba(0, 0, 0, 0.1); /* Separator line */
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
             padding-top: 1rem;
-            margin-top: 1rem; /* Reduced margin */
-            display: flex; /* Use flexbox */
-            justify-content: space-between; /* Space out buttons */
-            align-items: center; /* Align items vertically */
+            margin-top: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
          }
     </style>
 </head>
 <body>
-
-    {{-- The main styled card containing all content --}}
     <div class="card train-management-card">
         <div class="card-body p-4 p-md-5">
-
-            {{-- Main Heading --}}
             <h1 class="card-title h2 fw-bold text-center mb-4">{{ __('Train Management Panel') }}</h1>
-
-            {{-- Add New Train Section --}}
             <div class="management-section">
                 <h2 class="h4 fw-semibold">{{ __('Add a New Train') }}</h2>
                 <form action="{{ route('admin.trains.store') }}" method="POST">
                     @csrf
-                    {{-- Use Bootstrap grid for layout --}}
                     <div class="row g-3 align-items-end">
                         <div class="col-md">
                             <label for="add_train_name" class="form-label visually-hidden">{{ __('Train Name') }}</label>
@@ -149,26 +129,14 @@
                                 <option value="suspended">{{ __('Suspended') }}</option>
                             </select>
                         </div>
-                        <div class="col-md-auto"> {{-- Button column --}}
+                        <div class="col-md-auto">
                             <button type="submit" class="btn btn-primary w-100">
                                 <i class="bi bi-plus-lg me-1"></i>{{ __('Add Train') }}
                             </button>
                         </div>
                     </div>
-                     {{-- Display validation errors for the add form if needed --}}
-                    {{-- @if ($errors->any())
-                        <div class="alert alert-danger mt-3">
-                            <ul>
-                                @foreach ($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif --}}
                 </form>
             </div>
-
-            {{-- Manage Trains Section --}}
             <div class="management-section">
                 <h2 class="h4 fw-semibold">{{ __('Manage Trains') }}</h2>
                 <div class="table-responsive">
@@ -184,7 +152,6 @@
                         <tbody>
                             @forelse ($trains as $train)
                                 <tr>
-                                    {{-- Put inputs directly in cells, associate with form using 'form' attribute --}}
                                     <td class="py-2 px-3">
                                         <input type="text" name="name" value="{{ $train->name }}" required class="form-control form-control-sm" form="update-form-{{ $train->id }}">
                                     </td>
@@ -199,22 +166,19 @@
                                         </select>
                                     </td>
                                     <td class="py-2 px-3">
-                                        {{-- Actions column with separate forms --}}
                                         <div class="d-flex justify-content-center gap-2">
-                                            {{-- Update Form (only contains button, linked to inputs via ID) --}}
                                             <form action="{{ route('admin.trains.update', $train->id) }}" method="POST" id="update-form-{{ $train->id }}" class="d-inline">
                                                 @csrf
                                                 @method('PUT')
                                                 <button type="submit" class="btn btn-success btn-sm" title="{{ __('Update Train') }}">
-                                                    <i class="bi bi-check-lg"></i> {{-- Update Icon --}}
+                                                    <i class="bi bi-check-lg"></i>
                                                 </button>
                                             </form>
-                                            {{-- Delete Form --}}
                                             <form action="{{ route('admin.trains.destroy', $train->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this train?');" class="d-inline">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-danger btn-sm" title="{{ __('Delete Train') }}">
-                                                    <i class="bi bi-trash-fill"></i> {{-- Delete Icon --}}
+                                                    <i class="bi bi-trash-fill"></i> 
                                                 </button>
                                             </form>
                                         </div>
@@ -227,30 +191,16 @@
                             @endforelse
                         </tbody>
                     </table>
-                </div>{{-- End table-responsive --}}
-
-                {{-- Optional: Pagination links --}}
-                {{-- @if ($trains->hasPages()) --}}
-                {{-- <div class="mt-4 d-flex justify-content-center"> --}}
-                    {{-- {{ $trains->links() }} --}}
-                {{-- </div> --}}
-                {{-- @endif --}}
-
-            </div>{{-- End management-section (Manage Trains) --}}
-
-            {{-- Footer Actions Section --}}
+                </div>
+            </div>
             <div class="footer-actions-container">
-                 {{-- Switch to User Management Button --}}
-                 <div> {{-- Wrap in div for flex alignment --}}
-                    {{-- Make sure the route 'admin.users.index' exists or change it to the correct route name --}}
+                 <div>
                     <a href="{{ route('admin.users.index') }}" class="btn btn-outline-info btn-sm">
                         <i class="bi bi-people-fill me-1"></i>
                         {{ __('Switch to User Management') }}
                     </a>
                  </div>
-
-                 {{-- Logout Button Section --}}
-                 <div> {{-- Wrap in div for flex alignment --}}
+                 <div>
                     <form method="POST" action="{{ route('logout') }}" class="d-inline">
                         @csrf
                         <button type="submit" class="btn btn-outline-danger btn-sm">
@@ -260,15 +210,8 @@
                     </form>
                  </div>
             </div>
-
-        </div>{{-- End card-body --}}
-    </div>{{-- End card --}}
-
-    {{-- Include Bootstrap JS Bundle --}}
+        </div>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-
 </body>
 </html>
-
-{{-- Remove @endsection if not using @extends --}}
-{{-- @endsection --}}
