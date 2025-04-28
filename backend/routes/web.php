@@ -39,5 +39,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+Route::middleware(['auth', 'verified'])->get('/main-app', function () {
+    // This tells Laravel to load 'main.php' from the 'resources/views/' directory
+    // You don't need the '.php' extension here.
+    return view('main');
+})->name('main-app');
+
 // Auth routes
 require __DIR__.'/auth.php';
