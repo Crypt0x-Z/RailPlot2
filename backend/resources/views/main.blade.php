@@ -10,14 +10,14 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq"
         crossorigin="anonymous"></script>
-    <title>Scalable Draggable Canvas</title>
+    <title>RailPlot - Main</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 
 <body>
     <nav class="navbar navbar-expand-md bg-body-teritary">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#"><img src="logo.png" alt="" width="75px">RailPlot</a>
+            <a class="navbar-brand" href="#"><img src="{{ asset('logo.png') }}" alt="" width="75px">RailPlot</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                 data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
                 aria-label="Toggle navigation">
