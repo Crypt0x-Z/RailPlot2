@@ -11,6 +11,7 @@ Route::get('/', function () {
     return redirect('/login');
 });
 
+
 // Normal user dashboard
 Route::middleware(['auth', 'verified'])->get('/dashboard', function () {
     return view('dashboard');
@@ -44,6 +45,5 @@ Route::middleware(['auth', 'verified'])->get('/main-app', function () {
     // You don't need the '.php' extension here.
     return view('main');
 })->name('main-app');
-
 // Auth routes
 require __DIR__.'/auth.php';

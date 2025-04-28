@@ -154,10 +154,10 @@ function updateStationStats() {
     if (expressLinesStatEl) expressLinesStatEl.textContent = expressLines; // Update Express stat
 
     // update stats
-    const totalTrains = trains.reduce((sum, train) => sum + train.quantity, 0);
-    const groundTrains = trains.filter(t => t.type === 'ground').reduce((sum, train) => sum + train.quantity, 0);
-    const undergroundTrains = trains.filter(t => t.type === 'underground').reduce((sum, train) => sum + train.quantity, 0);
-    const suspendedTrains = trains.filter(t => t.type === 'suspended').reduce((sum, train) => sum + train.quantity, 0);
+    const totalTrains = trains.reduce((sum, train) => sum + train.capacity, 0);
+    const groundTrains = trains.filter(t => t.type === 'ground').reduce((sum, train) => sum + train.capacity, 0);
+    const undergroundTrains = trains.filter(t => t.type === 'underground').reduce((sum, train) => sum + train.capacity, 0);
+    const suspendedTrains = trains.filter(t => t.type === 'suspended').reduce((sum, train) => sum + train.capacity, 0);
 
     const totalTrainsStatEl = document.getElementById('totalTrainsStat');
     const groundTrainsStatEl = document.getElementById('groundTrainsStat');
@@ -528,6 +528,7 @@ function update() {
         let scale = 1;
         scale = mouse.wheel < 0 ? 1 / scaleRate : scaleRate;
         if ((panZoom.scale <= 0.5 && scale < 1) || (panZoom.scale >= 3 && scale > 1)) {
+            // Zoom limits reached
         } else {
             panZoom.scaleAt(mouse.x, mouse.y, scale);
         }
@@ -892,26 +893,60 @@ document.getElementById('saveStation').addEventListener('click', function (event
         return;
     }
 
-    const selectedLocations = [];
-    if (document.getElementById('undergroundType').checked) selectedLocations.push("underground");
-    if (document.getElementById('groundType').checked) selectedLocations.push("ground");
-    if (document.getElementById('suspendedType').checked) selectedLocations.push("suspended");
+    const newLocations = [];
+    if (document.getElementById('undergroundType').checked) newLocations.push("underground");
+    if (document.getElementById('groundType').checked) newLocations.push("ground");
+    if (document.getElementById('suspendedType').checked) newLocations.push("suspended");
 
-    if (selectedLocations.length === 0) {
+    if (newLocations.length === 0) {
         alert("Please select at least one station type.");
         return;
     }
 
     // edit station
     if (stationId) {
-        const updatedStation = stations.find(station => station.id == stationId);
-        if (updatedStation) {
-            updatedStation.name = name;
-            updatedStation.location = selectedLocations;
-            // update coords from input fields
-            updatedStation.x = x;
-            updatedStation.y = y;
+        const originalStation = stations.find(station => station.id == stationId);
+        if (!originalStation) {
+            alert("Error: Station being edited not found.");
+            return;
         }
+
+        const originalLocations = originalStation.location;
+        const originalName = originalStation.name;
+
+        // --- NEW VALIDATION: Check if removing a type conflicts with connected lines ---
+        const connectedLines = lines.filter(line => line.stations.includes(originalName));
+        const removedTypes = originalLocations.filter(type => !newLocations.includes(type));
+
+        for (const removedType of removedTypes) {
+            const conflictingLine = connectedLines.find(line => line.type === removedType);
+            if (conflictingLine) {
+                alert(`Cannot remove the "${removedType}" type from station "${originalName}". It is required by line "${conflictingLine.code} - ${conflictingLine.name}". Please update the line first.`);
+                // Re-check the checkbox that was just unchecked to prevent the change visually
+                if (removedType === 'underground') document.getElementById('undergroundType').checked = true;
+                if (removedType === 'ground') document.getElementById('groundType').checked = true;
+                if (removedType === 'suspended') document.getElementById('suspendedType').checked = true;
+                return; // Stop the save process
+            }
+        }
+        // --- END NEW VALIDATION ---
+
+        // --- Update station data ---
+        originalStation.name = name; // Update name (handle name change propagation below)
+        originalStation.location = newLocations; // Update locations
+        originalStation.x = x; // Update coords from input fields
+        originalStation.y = y;
+
+        // Update station name in all lines if it changed
+        if (originalName !== name) {
+            lines.forEach(line => {
+                line.stations = line.stations.map(stationName =>
+                    stationName === originalName ? name : stationName
+                );
+            });
+            updateLinesUI(); // Update line list if name changed
+        }
+
     } else {
         // add new station
         const newStation = {
@@ -920,7 +955,7 @@ document.getElementById('saveStation').addEventListener('click', function (event
             x: x,
             y: y,
             name: name,
-            location: selectedLocations
+            location: newLocations
         };
         stations.push(newStation);
     }
@@ -989,79 +1024,240 @@ function resetLineForm() {
     maxTrainQuantitySpan.textContent = '';
 }
 
-// train input only has trains that match the type of the line
-function populateTrainSelect(selectedTrainName = null) {
-    assignedTrainSelect.innerHTML = '<option value="">-- Select a Train --</option>';
-    trainQuantityInput.value = 0;
-    trainQuantityInput.disabled = true;
-    maxTrainQuantitySpan.textContent = '';
+function fetchTrains() {
+    fetch("/api/trains-get").then(response => response.json()).then(data => trains.push(data))
+}
+fetchTrains();
 
+function updateTrain(id, name, type, capacity) {
+    // --- 1. Get CSRF Token from meta tag ---
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
-    const selectedLineTypeRadio = document.querySelector('input[name="lineType"]:checked');
-    const selectedLineType = selectedLineTypeRadio ? selectedLineTypeRadio.value : null;
-
-    // no train select if no line type
-    if (!selectedLineType) {
-        assignedTrainSelect.disabled = true;
-        return;
+    if (!csrfToken) {
+        console.error('CSRF token not found in meta tag!');
+        alert('An error occurred saving the data. CSRF token missing.');
+        return; // Stop if token is missing
     }
-    assignedTrainSelect.disabled = false;
 
-    const filteredTrains = trains.filter(train => train.type === selectedLineType);
-
-    filteredTrains.forEach(train => {
-        const option = document.createElement('option');
-        option.value = train.name;
-        option.textContent = `${train.name} (Qty: ${train.quantity})`;
-        if (selectedTrainName && train.name === selectedTrainName) {
-            option.selected = true;
-        }
-        assignedTrainSelect.appendChild(option);
-    });
-
-    // if train selected in edit, update
-    if (selectedTrainName) {
-        const selectedTrain = trains.find(train => train.name === selectedTrainName);
-        if (selectedTrain) {
-            trainQuantityInput.disabled = false;
-            trainQuantityInput.max = selectedTrain.quantity;
-            maxTrainQuantitySpan.textContent = `(Max: ${selectedTrain.quantity})`;
-            // check if editingLineIndex is valid before accessing lines array
-            if (editingLineIndex !== null && lines[editingLineIndex] && lines[editingLineIndex].assignedTrain === selectedTrainName) {
-                trainQuantityInput.value = lines[editingLineIndex].trainQuantity || 0;
+    // --- 2. Make the fetch request ---
+    // Use backticks (`) for template literal URL and include CSRF token in headers
+    fetch(`/api/trains-put/${id}`, { // <-- Corrected URL using template literal
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json", // Often good practice to include Accept header
+            "X-CSRF-TOKEN": csrfToken // <-- Sending the CSRF token
+        },
+        credentials: 'include', // <-- Include credentials (cookies) for cross-origin requests if needed
+        // Send an object in the body
+        body: JSON.stringify({ name, type, capacity }), // <-- Corrected body
+    })
+        .then(response => {
+            if (!response.ok) {
+                // Log more details if the response is not OK
+                console.error("Failed to update train. Status:", response.status, response.statusText);
+                response.text().then(text => console.error("Response body:", text)); // Log response body if possible
+                alert(`Failed to update train: ${response.statusText}`); // Inform user
+                // Handle error appropriately
             } else {
+                console.log(`Train ${name} (ID: ${id}) updated successfully.`);
+                // Optionally handle success (e.g., update local 'trains' array or refetch)
+                // Find and update the train in the local nested 'trains' array
+                let trainUpdatedLocally = false;
+                for (let i = 0; i < trains.length; i++) {
+                    for (let j = 0; j < trains[i].length; j++) {
+                        if (trains[i][j].id === id) {
+                            trains[i][j].name = name;
+                            trains[i][j].type = type;
+                            trains[i][j].capacity = capacity;
+                            trainUpdatedLocally = true;
+                            break;
+                        }
+                    }
+                    if (trainUpdatedLocally) break;
+                }
+                if (trainUpdatedLocally) {
+                    console.log("Local train data updated.");
+                    // If the line modal is open and showing this train, repopulate the select
+                    if (lineModal.style.display === 'block' && editingLineIndex !== null) {
+                       populateTrainSelect(lines[editingLineIndex]?.assignedTrain);
+                    } else if (lineModal.style.display === 'block') {
+                        populateTrainSelect();
+                    }
+                } else {
+                     console.warn("Could not find train locally to update capacity.");
+                     // Consider refetching if local update fails
+                     // fetchTrains();
+                }
+
+                updateStationStats(); // Update stats which might depend on train capacity
+            }
+        })
+        .catch(error => {
+            console.error("Network or other error updating train:", error);
+            alert(`An error occurred: ${error.message}`); // Inform user
+        });
+}
+
+// train input only has trains that match the type of the line
+function populateTrainSelect(currentSelectedTrain) {
+    console.log("Populating train select. Pre-selected train:", currentSelectedTrain);
+    // Get the currently selected line type from radio buttons
+    const selectedLineType = document.querySelector('input[name="lineType"]:checked')?.value;
+
+    // Store the name of the train that should be selected after repopulating
+    // This could be the one passed in (e.g., during initial load/edit) or the current selection
+    const trainToSelect = currentSelectedTrain || assignedTrainSelect.value;
+
+    // Clear existing options and add the default placeholder option
+    assignedTrainSelect.innerHTML = '<option value="">-- Select a Train --</option>';
+
+    // Check if a line type is selected
+    if (!selectedLineType) {
+        console.log("No line type selected.");
+        // Optionally disable quantity input if no type is selected
+        trainQuantityInput.value = 0;
+        trainQuantityInput.disabled = true;
+        maxTrainQuantitySpan.textContent = '';
+        return; // Exit if no type is selected
+    }
+
+    console.log(`Filtering for line type: ${selectedLineType}`);
+
+    // Iterate through the outer array (e.g., groups/lines)
+    for (let i = 0; i < trains.length; i++) {
+        // Iterate through the trains within the current group
+        for (let j = 0; j < trains[i].length; j++) {
+            // Get the current train object
+            const trainObj = trains[i][j];
+            // console.log('Checking train:', trainObj); // Can be verbose
+
+            // *** Filter condition ***
+            // Check if the current train's type matches the selected line type
+            if (trainObj.type === selectedLineType) {
+                // console.log('Match found:', trainObj.name); // Can be verbose
+
+                // Create a new option element
+                const option = document.createElement('option');
+
+                // Set the value of the option (using the train's name)
+                option.value = trainObj.name;
+
+                // Set the display text of the option (including capacity)
+                option.textContent = `${trainObj.name} (Qty: ${trainObj.capacity})`;
+
+                // Check if this train should be pre-selected
+                if (trainToSelect && trainObj.name === trainToSelect) {
+                    console.log('Setting selected:', trainObj.name);
+                    option.selected = true;
+                }
+
+                // Add the newly created option to the select dropdown
+                assignedTrainSelect.appendChild(option);
+            }
+        }
+    }
+
+    // --- Logic to update quantity input based on the *final* selected train ---
+    const finalSelectedTrainName = assignedTrainSelect.value;
+    console.log("Final selected train in dropdown:", finalSelectedTrainName);
+
+    if (finalSelectedTrainName) {
+        let selectedTrainData = null;
+        // Find the selected train data (need to loop again or use a more efficient lookup)
+        for (let i = 0; i < trains.length; i++) {
+            for (let j = 0; j < trains[i].length; j++) {
+                if (trains[i][j].name === finalSelectedTrainName) {
+                    selectedTrainData = trains[i][j];
+                    break; // Found the train, exit inner loop
+                }
+            }
+            if (selectedTrainData) break; // Found the train, exit outer loop
+        }
+
+        console.log("Selected train data for quantity update:", selectedTrainData);
+
+        if (selectedTrainData) {
+            trainQuantityInput.disabled = false;
+            trainQuantityInput.max = selectedTrainData.capacity;
+            maxTrainQuantitySpan.textContent = `(Max: ${selectedTrainData.capacity})`;
+
+            // Check if editing and if the assigned train matches the selected one
+            if (editingLineIndex !== null && lines[editingLineIndex] && lines[editingLineIndex].assignedTrain === finalSelectedTrainName) {
+                trainQuantityInput.value = lines[editingLineIndex].trainQuantity || 0;
+            } else if (!currentSelectedTrain) {
+                // If not editing, and not initially loading a specific train, reset quantity
                 trainQuantityInput.value = 0;
             }
+            // Ensure current value doesn't exceed new max
+            if (parseInt(trainQuantityInput.value) > selectedTrainData.capacity) {
+                trainQuantityInput.value = selectedTrainData.capacity;
+            }
+
+
         } else {
+            // Should not happen if the selected value came from the populated options
+            console.error("Selected train name not found in data:", finalSelectedTrainName);
             trainQuantityInput.value = 0;
+            trainQuantityInput.disabled = true;
+            maxTrainQuantitySpan.textContent = '';
         }
     } else {
+        // No train selected (only the default "-- Select a Train --")
         trainQuantityInput.value = 0;
+        trainQuantityInput.disabled = true;
+        maxTrainQuantitySpan.textContent = '';
     }
 }
 
-// update train select  based on radio button value
+// --- Event Listeners (Keep as they were) ---
+
+// update train select based on radio button value
 document.querySelectorAll('input[name="lineType"]').forEach(radio => {
     radio.addEventListener('change', () => {
         // only populate if not disabled (i.e., not editing express line)
         if (!radio.disabled) {
-            populateTrainSelect(assignedTrainSelect.value);
+            // Pass null initially, populateTrainSelect will figure out the selection
+            populateTrainSelect(null);
         }
     });
 });
 
-// update quantity input
+// update quantity input when assigned train changes
 assignedTrainSelect.addEventListener('change', () => {
-    const selectedTrainName = assignedTrainSelect.value;
-    if (selectedTrainName) {
-        const selectedTrain = trains.find(train => train.name === selectedTrainName);
-        if (selectedTrain) {
+    const newlySelectedTrainName = assignedTrainSelect.value;
+    console.log("Assigned train changed to:", newlySelectedTrainName);
+
+    if (newlySelectedTrainName) {
+        let selectedTrainData = null;
+        // Find the selected train data
+        for (let i = 0; i < trains.length; i++) {
+            for (let j = 0; j < trains[i].length; j++) {
+                if (trains[i][j].name === newlySelectedTrainName) {
+                    selectedTrainData = trains[i][j];
+                    break;
+                }
+            }
+            if (selectedTrainData) break;
+        }
+
+        console.log("Data for newly selected train:", selectedTrainData);
+
+        if (selectedTrainData) {
             trainQuantityInput.disabled = false;
-            trainQuantityInput.max = selectedTrain.quantity;
-            maxTrainQuantitySpan.textContent = `(Max: ${selectedTrain.quantity})`;
-            trainQuantityInput.value = trainQuantityInput.value > 0 ? Math.min(trainQuantityInput.value, selectedTrain.quantity) : 0;
+            trainQuantityInput.max = selectedTrainData.capacity; // Use capacity for max
+            maxTrainQuantitySpan.textContent = `(Max: ${selectedTrainData.capacity})`;
+            // Reset quantity to 0 when changing train
+            trainQuantityInput.value = 0;
+
+        } else {
+            console.error("Changed to a train name not found in data:", newlySelectedTrainName);
+            trainQuantityInput.value = 0;
+            trainQuantityInput.disabled = true;
+            maxTrainQuantitySpan.textContent = '';
         }
     } else {
+        // "-- Select a Train --" selected
         trainQuantityInput.value = 0;
         trainQuantityInput.disabled = true;
         maxTrainQuantitySpan.textContent = '';
@@ -1070,200 +1266,215 @@ assignedTrainSelect.addEventListener('change', () => {
 
 // save line button logic
 saveLineBtn.addEventListener('click', function (event) {
-    event.preventDefault();
+    event.preventDefault(); //
 
-    const lineName = document.getElementById('lineName').value.trim();
-    const lineCode = document.getElementById('lineCode').value.trim().toUpperCase();
-    const lineColor = document.getElementById('lineColor').value;
-    const lineTypeRadio = document.querySelector('input[name="lineType"]:checked');
+    // --- Get data from form ---
+    const lineName = document.getElementById('lineName').value.trim(); //
+    const lineCode = document.getElementById('lineCode').value.trim().toUpperCase(); //
+    const lineColor = document.getElementById('lineColor').value; //
+    const lineTypeRadio = document.querySelector('input[name="lineType"]:checked'); //
+    let newLineType; // Renamed for clarity in this scope
     // if editing express, get type from original line data, otherwise from radio
-    let lineType;
-    if (editingLineIndex !== null && lines[editingLineIndex] && lines[editingLineIndex].originalLineCode) {
-        lineType = lines[editingLineIndex].type; // use existing type for express
+    if (editingLineIndex !== null && lines[editingLineIndex] && lines[editingLineIndex].originalLineCode) { //
+        newLineType = lines[editingLineIndex].type; // use existing type for express //
     } else {
-        lineType = lineTypeRadio ? lineTypeRadio.value : null; // get from radio for normal/new
+        newLineType = lineTypeRadio ? lineTypeRadio.value : null; // get from radio for normal/new //
     }
-    const assignedTrain = assignedTrainSelect.value;
-    const trainQuantity = parseInt(trainQuantityInput.value, 10);
-    const stationButtons = plusButtonsContainer.querySelectorAll('.plus-button span');
-    const stationNames = Array.from(stationButtons).map(span => span.textContent.trim()).filter(Boolean);
+    const assignedTrain = assignedTrainSelect.value; //
+    const trainQuantity = parseInt(trainQuantityInput.value, 10); //
+    const stationButtons = plusButtonsContainer.querySelectorAll('.plus-button span'); //
+    const stationNames = Array.from(stationButtons).map(span => span.textContent.trim()).filter(Boolean); //
 
-    // validate
-    if (!lineName || !lineCode || !lineType || stationNames.length < 2) {
-        alert("Please fill all fields and select at least two stations.");
-        return;
+    // --- Basic Validation ---
+    if (!lineName || !lineCode || !newLineType || stationNames.length < 2) { //
+        alert("Please fill all fields, select a type, and add at least two stations."); //
+        return; //
     }
 
-    if (lineCode.length !== 2) {
-        alert("Line Code must be exactly 2 letters.");
-        return;
+    if (lineCode.length !== 2) { //
+        alert("Line Code must be exactly 2 letters."); //
+        return; //
     }
 
     // make sure a station cannot appear twice in a row
-    for (let i = 0; i < stationNames.length - 1; i++) {
-        if (stationNames[i] === stationNames[i + 1]) {
-            alert("A station cannot appear twice in a row on the same line.");
-            return;
+    for (let i = 0; i < stationNames.length - 1; i++) { //
+        if (stationNames[i] === stationNames[i + 1]) { //
+            alert("A station cannot appear twice in a row on the same line."); //
+            return; //
         }
     }
 
-    // validate train assignment and quantity
-    const availableTrainsForType = trains.filter(train => train.type === lineType);
-    if (availableTrainsForType.length > 0) {
-        if (!assignedTrain) {
-            alert(`Please assign a train of type "${lineType}" to this line.`);
-            return;
-        }
-        if (isNaN(trainQuantity) || trainQuantity <= 0) {
-            alert("Please specify a valid train quantity (must be a positive number).");
-            return;
-        }
-        const selectedTrainObj = trains.find(train => train.name === assignedTrain);
-        if (!selectedTrainObj || trainQuantity > selectedTrainObj.quantity) {
-            alert(`Invalid train quantity. You can only assign up to ${selectedTrainObj ? selectedTrainObj.quantity : 0} of "${assignedTrain}".`);
-            return;
-        }
-    } else {
-        // if no trains exist of the type, no train assigned
-        if (assignedTrain || trainQuantity > 0) {
-            alert(`There are no trains of type "${lineType}" available to assign.`);
-            assignedTrainSelect.value = "";
-            trainQuantityInput.value = 0;
-            trainQuantityInput.disabled = true;
-            maxTrainQuantitySpan.textContent = '';
+    // --- Find Selected Train Object ---
+    let selectedTrainObj = null; //
+    if (assignedTrain) { //
+        // Loop to find the train object (assuming 'trains' is nested)
+        for (let i = 0; i < trains.length; i++) { //
+            for (let j = 0; j < trains[i].length; j++) { //
+                if (trains[i][j].name === assignedTrain) { //
+                    selectedTrainObj = trains[i][j]; //
+                    break; //
+                }
+            }
+            if (selectedTrainObj) break; //
         }
     }
 
+    // --- Train Validation and Update Logic ---
+    let capacityToUpdate = null; // Store new capacity if update is needed
+    let trainToUpdate = null; // Store train details if update is needed
 
-    const newLineData = {
-        name: lineName,
-        code: lineCode,
-        color: lineColor,
-        type: lineType, // use the determined line type
-        stations: stationNames,
-        assignedTrain: assignedTrain || null,
-        trainQuantity: (assignedTrain && trainQuantity > 0) ? trainQuantity : 0
+    if (assignedTrain && trainQuantity > 0) { // Only proceed if a train is assigned AND quantity is positive //
+        if (!selectedTrainObj) { //
+            alert(`Could not find data for selected train "${assignedTrain}".`); //
+            return; //
+        }
+        if (isNaN(trainQuantity)) { // Check if trainQuantity is a valid number
+            alert("Please specify a valid train quantity.");
+            return;
+        }
+
+        // Check if quantity exceeds capacity
+        if (trainQuantity > selectedTrainObj.capacity) { //
+            alert(`Invalid train quantity. You can only assign up to ${selectedTrainObj.capacity} of "${assignedTrain}".`); //
+            return; //
+        }
+
+        // *** Prepare train update data, but don't call updateTrain yet ***
+        capacityToUpdate = selectedTrainObj.capacity - trainQuantity; // Calculate the new capacity
+        trainToUpdate = {
+            id: selectedTrainObj.id,
+            name: selectedTrainObj.name,
+            type: selectedTrainObj.type
+        };
+
+    } else if (assignedTrain && (isNaN(trainQuantity) || trainQuantity <= 0)) { //
+        alert("Please specify a valid positive train quantity."); //
+        return; //
+    } else if (!assignedTrain && trainQuantity > 0) { //
+        alert("Please select a train before specifying quantity."); //
+        return; //
+    }
+
+    // --- Prepare Line Data Object ---
+    const newLineData = { //
+        name: lineName, //
+        code: lineCode, //
+        color: lineColor, //
+        type: newLineType, // use the determined line type //
+        stations: stationNames, //
+        assignedTrain: assignedTrain || null, // Store assigned train name or null //
+        trainQuantity: (assignedTrain && trainQuantity > 0) ? trainQuantity : 0 // Store quantity or 0 //
     };
 
-    let originalLineUpdated = false;
+    let originalLineUpdated = false; //
 
-    if (editingLineIndex !== null) {
-        const originalLineDataBeforeEdit = { ...lines[editingLineIndex] }; // store original data before edit
+    // --- Save/Update Line in Local 'lines' Array ---
+    if (editingLineIndex !== null) { //
+        // --- Handle Editing Existing Line ---
+        const originalLineData = lines[editingLineIndex]; // Get original line data
 
-        if (lines[editingLineIndex].originalLineCode) {
-            newLineData.originalLineCode = lines[editingLineIndex].originalLineCode;
-            // if editing an express line make sure start and end stations are same as OG
-            const originalLine = lines.find(l => l.code === newLineData.originalLineCode);
-            if (originalLine) {
+        // --- NEW VALIDATION: Prevent changing line type if stations exist ---
+        if (!originalLineData.originalLineCode && // Only for non-express lines
+            originalLineData.type !== newLineType && // If type has changed
+            originalLineData.stations.length > 0) { // And stations are assigned
+            alert(`Cannot change the type of line "${originalLineData.code}" from "${originalLineData.type}" to "${newLineType}" because it already has stations. Please create a new line or remove stations first.`);
+            // Optionally revert the radio button selection visually
+            document.querySelector(`input[name="lineType"][value="${originalLineData.type}"]`).checked = true;
+            return; // Stop saving
+        }
+        // --- END NEW VALIDATION ---
+
+        // --- Continue with edit logic ---
+        if (originalLineData.originalLineCode) { // Check if editing an express line //
+            newLineData.originalLineCode = originalLineData.originalLineCode; //
+            const originalLine = lines.find(l => l.code === newLineData.originalLineCode); //
+            if (originalLine) { //
                 // revalidate endpoints
-                if (newLineData.stations[0] !== originalLine.stations[0] ||
-                    newLineData.stations[newLineData.stations.length - 1] !== originalLine.stations[originalLine.stations.length - 1]) {
-                    alert("Express line endpoints must match the original line's endpoints.");
-                    return;
+                if (newLineData.stations[0] !== originalLine.stations[0] || //
+                    newLineData.stations[newLineData.stations.length - 1] !== originalLine.stations[originalLine.stations.length - 1]) { //
+                    alert("Express line endpoints must match the original line's endpoints."); //
+                    return; //
                 }
-                // ensure type still matches original (should be guaranteed by disabled radios, but double-check)
-                if (newLineData.type !== originalLine.type) {
-                    alert("Express line type must match the original line's type.");
-                    newLineData.type = originalLine.type; // force match just in case
+                // ensure type still matches original
+                if (newLineData.type !== originalLine.type) { //
+                    alert("Express line type must match the original line's type."); //
+                    newLineData.type = originalLine.type; // force match
                 }
-            } else {
-                // errors
-                alert(`Error: Original line ${newLineData.originalLineCode} not found. Cannot save express line.`);
-                return;
+            } else { //
+                alert(`Error: Original line ${newLineData.originalLineCode} not found. Cannot save express line.`); //
+                return; //
             }
 
-        } else {
-            if (lines[editingLineIndex].code !== newLineData.code) {
-                const existingIndexWithCode = lines.findIndex((line, index) => line.code === newLineData.code && index !== editingLineIndex);
-                if (existingIndexWithCode !== -1) {
-                    alert(`A line with code "${lineCode}" already exists.`);
-                    return;
+        } else { // Handling edit of a non-express (original) line //
+            // Check if code is being changed to one that already exists
+            if (originalLineData.code !== newLineData.code) { //
+                const existingIndexWithCode = lines.findIndex((line, index) => line.code === newLineData.code && index !== editingLineIndex); //
+                if (existingIndexWithCode !== -1) { //
+                    alert(`A line with code "${lineCode}" already exists.`); //
+                    return; //
                 }
             }
-            originalLineUpdated = true; // OG line updated
+            originalLineUpdated = true; // Mark that an original line was updated //
         }
 
-        lines[editingLineIndex] = newLineData;
-        console.log("Edited line saved:", newLineData);
+        // --- Update the line in the array ---
+        lines[editingLineIndex] = newLineData; //
+        console.log("Edited line saved:", newLineData); //
 
         // update express line if OG changed ---
-        if (originalLineUpdated) {
-            const updatedOriginalLine = lines[editingLineIndex];
-            const originalCode = updatedOriginalLine.code;
-            const newStartStation = updatedOriginalLine.stations[0];
-            const newEndStation = updatedOriginalLine.stations[updatedOriginalLine.stations.length - 1];
+        if (originalLineUpdated) { //
+            const updatedOriginalLine = lines[editingLineIndex]; //
+            const originalCode = updatedOriginalLine.code; //
+            const newStartStation = updatedOriginalLine.stations[0]; //
+            const newEndStation = updatedOriginalLine.stations[updatedOriginalLine.stations.length - 1]; //
 
-            // iterate through all lines to find express line
-            lines.forEach((line, index) => {
-                if (line.originalLineCode === originalCode) {
-                    const currentExpressStations = [...line.stations];
-                    let newExpressStations = [];
-                    newExpressStations.push(newStartStation);
+            lines.forEach((line, index) => { //
+                if (line.originalLineCode === originalCode) { //
+                    const currentExpressStations = [...line.stations]; //
+                    let newExpressStations = []; //
+                    newExpressStations.push(newStartStation); //
 
-                    for (let i = 1; i < currentExpressStations.length - 1; i++) {
-                        const intermediateStation = currentExpressStations[i];
-                        if (intermediateStation !== newStartStation && intermediateStation !== newEndStation && updatedOriginalLine.stations.includes(intermediateStation)) {
-                            newExpressStations.push(intermediateStation);
+                    for (let i = 1; i < currentExpressStations.length - 1; i++) { //
+                        const intermediateStation = currentExpressStations[i]; //
+                        if (intermediateStation !== newStartStation && intermediateStation !== newEndStation && updatedOriginalLine.stations.includes(intermediateStation)) { //
+                            newExpressStations.push(intermediateStation); //
                         }
                     }
 
-                    if (newStartStation !== newEndStation) {
-                        newExpressStations.push(newEndStation);
+                    if (newStartStation !== newEndStation) { //
+                        newExpressStations.push(newEndStation); //
                     }
 
-                    // remove duplicates from the final list (handles cases where new start/end might have been intermediates)
-                    lines[index].stations = newExpressStations.filter((value, idx, self) => self.indexOf(value) === idx);
+                    lines[index].stations = newExpressStations.filter((value, idx, self) => self.indexOf(value) === idx); //
+                    lines[index].type = updatedOriginalLine.type; //
 
-                    // also update the type of the express line if the original changed
-                    lines[index].type = updatedOriginalLine.type;
-
-                    console.log(`Updated express line "${line.code}" endpoints, type, and preserved intermediates based on original line "${originalCode}". New stations: ${lines[index].stations.join(', ')}`);
+                    console.log(`Updated express line "${line.code}" endpoints, type, and preserved intermediates based on original line "${originalCode}". New stations: ${lines[index].stations.join(', ')}`); //
                 }
             });
         }
     } else {
-        if (lines.some(line => line.code === newLineData.code)) {
-            alert(`A line with code "${lineCode}" already exists.`);
-            return;
+        // --- Handle Adding New Line ---
+        if (lines.some(line => line.code === newLineData.code)) { //
+            alert(`A line with code "${lineCode}" already exists.`); //
+            return; //
         }
-        lines.push(newLineData);
-        console.log("New line added:", newLineData);
+        lines.push(newLineData); // Add the new line to the array //
+        console.log("New line added:", newLineData); //
     }
 
-    update();
-    updateStationStats();
-    updateLinesUI();
-    lineModal.style.display = 'none';
-    resetLineForm();
-});
-
-deleteLineBtn.addEventListener('click', function () {
-    if (editingLineIndex !== null && confirm("Are you sure you want to delete this line?")) {
-        // check if line has express line
-        const lineToDelete = lines[editingLineIndex];
-        if (!lineToDelete.originalLineCode) {
-            const dependentExpressLines = lines.filter(l => l.originalLineCode === lineToDelete.code);
-            if (dependentExpressLines.length > 0) {
-                const expressCodes = dependentExpressLines.map(l => l.code).join(', ');
-                if (!confirm(`Deleting line "${lineToDelete.code}" will also delete its express lines: ${expressCodes}. Continue?`)) {
-                    return;
-                }
-                lines = lines.filter(l => l.originalLineCode !== lineToDelete.code);
-            }
-        }
-
-        const actualIndexToDelete = lines.findIndex(l => l.code === lineToDelete.code);
-        if (actualIndexToDelete !== -1) {
-            lines.splice(actualIndexToDelete, 1);
-        }
-
-
-        update();
-        updateStationStats();
-        updateLinesUI();
-        lineModal.style.display = 'none';
-        resetLineForm();
+    // --- Call updateTrain only if everything else succeeded ---
+    if (trainToUpdate && capacityToUpdate !== null) {
+        console.log(`Updating train ${trainToUpdate.name} (ID: ${trainToUpdate.id}), setting capacity to ${capacityToUpdate}`);
+        updateTrain(trainToUpdate.id, trainToUpdate.name, trainToUpdate.type, capacityToUpdate);
     }
+
+
+    // --- Final UI Updates and Cleanup ---
+    update(); // Update canvas //
+    updateStationStats(); // Update stats panel //
+    updateLinesUI(); // Update line list //
+    lineModal.style.display = 'none'; // Close modal //
+    resetLineForm(); // Reset the form //
 });
 
 createExpressServiceBtn.addEventListener('click', function () {
@@ -1278,10 +1489,12 @@ createExpressServiceBtn.addEventListener('click', function () {
         listItem.dataset.stationName = stationName;
         listItem.addEventListener('click', () => {
             listItem.classList.toggle('selected-station');
+            // Ensure endpoints cannot be deselected
             if (stationName === originalLine.stations[0] || stationName === originalLine.stations[originalLine.stations.length - 1]) {
                 listItem.classList.add('selected-station');
             }
         });
+        // Pre-select endpoints
         if (stationName === originalLine.stations[0] || stationName === originalLine.stations[originalLine.stations.length - 1]) {
             listItem.classList.add('selected-station');
         }
@@ -1334,8 +1547,8 @@ createExpressLineBtn.addEventListener('click', function () {
         color: originalLine.color,
         type: originalLine.type,
         stations: sortedSelectedStations,
-        assignedTrain: originalLine.assignedTrain,
-        trainQuantity: originalLine.trainQuantity,
+        assignedTrain: originalLine.assignedTrain, // Carry over train assignment
+        trainQuantity: originalLine.trainQuantity, // Carry over quantity
         originalLineCode: originalLine.code
     };
 
@@ -1353,12 +1566,13 @@ plusButtonsContainer.addEventListener('click', (event) => {
     const clickedButton = event.target.closest('.plus-button');
     if (!clickedButton) return;
 
+    // Check if the clicked button is the '+' button
     if (clickedButton.textContent.trim() === '+' || clickedButton.innerHTML.trim() === '+') {
-        modalList.innerHTML = '';
+        modalList.innerHTML = ''; // Clear previous list items
         const lineTypeRadio = document.querySelector('input[name="lineType"]:checked');
         const selectedLineType = lineTypeRadio ? lineTypeRadio.value : null;
 
-        const isEditingExpress = editingLineIndex !== null && lines[editingLineIndex]?.originalLineCode; // added safe check
+        const isEditingExpress = editingLineIndex !== null && lines[editingLineIndex]?.originalLineCode;
         let originalLineStations = [];
         if (isEditingExpress) {
             const originalLine = lines.find(l => l.code === lines[editingLineIndex].originalLineCode);
@@ -1366,43 +1580,55 @@ plusButtonsContainer.addEventListener('click', (event) => {
                 originalLineStations = originalLine.stations;
             } else {
                 console.error("Original line not found when trying to add station to express line.");
+                // Optionally disable adding stations if original line is missing
             }
         }
 
+        // Get stations already added in the editor UI
+        const currentStationNamesInEditor = Array.from(plusButtonsContainer.querySelectorAll('.plus-button span'))
+            .map(span => span.textContent.trim());
+
         stations.forEach(item => {
-            // check line type compatibility unless editing express (type is fixed)
-            if (!isEditingExpress && selectedLineType && !item.location.includes(selectedLineType)) return;
+            // Filter 1: Check line type compatibility (unless editing express or no type selected yet)
+            if (!isEditingExpress && selectedLineType && !item.location.includes(selectedLineType)) {
+                return; // Skip station if type doesn't match selected line type
+            }
 
-            // if editing express line only show stations in the OG line
+            // Filter 2: If editing express line, only show stations from the original line
             if (isEditingExpress && !originalLineStations.includes(item.name)) {
-                return;
+                return; // Skip station if not part of the original line for express editing
             }
 
-            // duplicate check
-            const currentStationNamesInEditor = Array.from(plusButtonsContainer.querySelectorAll('.plus-button span')).map(span => span.textContent.trim());
+            // Filter 3: Don't show stations already added in the editor
             if (currentStationNamesInEditor.includes(item.name)) {
-                return;
+                return; // Skip station if already present in the plusButtonsContainer
             }
 
+            // Create list item for the modal
             const listItem = document.createElement('li');
             listItem.textContent = item.name;
+            listItem.dataset.stationName = item.name; // Store name for later use
 
-            // no same station twice in a row
+            // Add click handler to add the station to the plusButtonsContainer
             listItem.onclick = () => {
                 const currentButtons = plusButtonsContainer.querySelectorAll('.plus-button');
-                const currentStations = Array.from(currentButtons).map(btn => btn.querySelector('span')?.textContent.trim()).filter(Boolean);
+                const currentStationsInUI = Array.from(currentButtons)
+                                             .map(btn => btn.querySelector('span')?.textContent.trim())
+                                             .filter(Boolean);
 
-                if (currentStations.length > 0 && currentStations[currentStations.length - 1] === item.name) {
+                // Prevent adding the same station twice in a row
+                if (currentStationsInUI.length > 0 && currentStationsInUI[currentStationsInUI.length - 1] === item.name) {
                     alert("Cannot add the same station twice in a row.");
-                    listModal.style.display = 'none';
+                    listModal.style.display = 'none'; // Close modal
                     return;
                 }
 
-                // express line adding logic
-                if (isEditingExpress) {
+                 // --- Express Line Adding Logic ---
+                 if (isEditingExpress) {
+                    // ... (existing express logic remains the same) ...
+                    // Find the correct insertion point based on original line order
                     const originalLineCode = lines[editingLineIndex].originalLineCode;
                     const originalLine = lines.find(l => l.code === originalLineCode);
-
                     if (!originalLine) {
                         console.error("Original line not found for express edit!");
                         listModal.style.display = 'none';
@@ -1410,155 +1636,143 @@ plusButtonsContainer.addEventListener('click', (event) => {
                     }
 
                     const newItemName = item.name;
-
-                    // get current stations in the editor (excluding the final '+')
-                    const currentStationButtonsInEditor = Array.from(plusButtonsContainer.querySelectorAll('.plus-button span'));
-                    const currentStationNamesInEditor = currentStationButtonsInEditor.map(span => span.textContent.trim());
-
-                    // create a combined list including the new station
-                    const potentialStations = [...currentStationNamesInEditor, newItemName];
-
-                    // filter this list based on the OG line's order
+                    // Get current stations *including* the one about to be added
+                    const currentStationNamesInEditorNow = Array.from(plusButtonsContainer.querySelectorAll('.plus-button span')).map(span => span.textContent.trim());
+                    const potentialStations = [...currentStationNamesInEditorNow, newItemName];
+                    // Filter potential stations based on original line and sort them
                     const orderedStations = originalLine.stations.filter(stationName => potentialStations.includes(stationName));
-
-                    // find the index where the new item should be in the ordered list
+                    // Find the index where the new station should be inserted
                     const insertAtIndex = orderedStations.indexOf(newItemName);
-
-                    // find element to insert before (could be another station button or the final '+')
-                    // includes the final '+' button if it exists
+                    // Find the button in the UI that the new button should come before
                     const insertBeforeButton = plusButtonsContainer.children[insertAtIndex];
 
-                    // create the new station button element
-                    const button = document.createElement('button');
-                    button.classList.add('plus-button');
-
-                    const container = document.createElement('div');
-                    container.style.display = 'flex';
-                    container.style.alignItems = 'center';
-                    container.style.justifyContent = 'space-between';
-                    container.style.width = '100%';
-
-                    const nameSpan = document.createElement('span');
-                    nameSpan.textContent = newItemName;
-
-                    const btnGroup = document.createElement('div');
-                    btnGroup.classList.add('btn-group');
-                    btnGroup.style.display = 'flex';
-                    btnGroup.style.gap = '4px';
-
-                    const upBtn = document.createElement('button');
-                    upBtn.textContent = '↑';
-                    upBtn.disabled = true;
-                    upBtn.onclick = (e) => e.stopPropagation();
-
-                    const downBtn = document.createElement('button');
-                    downBtn.textContent = '↓';
-                    downBtn.disabled = true;
-                    downBtn.onclick = (e) => e.stopPropagation();
-
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.textContent = '×';
-                    // can delete added intermediate stations but not endpoints (express only)
-                    const isEndpoint = newItemName === originalLine.stations[0] || newItemName === originalLine.stations[originalLine.stations.length - 1];
-                    deleteBtn.disabled = isEndpoint;
-                    deleteBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        button.remove();
-                        // always "+" button
-                        if (plusButtonsContainer.querySelectorAll('.plus-button span').length === 0 && plusButtonsContainer.innerHTML.trim() === '') {
-                            const newPlusButton = document.createElement('button');
-                            newPlusButton.classList.add('plus-button');
-                            newPlusButton.textContent = '+';
-                            plusButtonsContainer.appendChild(newPlusButton);
-                        }
-                    };
-
-                    btnGroup.appendChild(upBtn);
-                    btnGroup.appendChild(downBtn);
-                    btnGroup.appendChild(deleteBtn);
-
-                    container.appendChild(nameSpan);
-                    container.appendChild(btnGroup);
-                    button.appendChild(container);
-
-                    plusButtonsContainer.insertBefore(button, insertBeforeButton);
-
+                    const button = createStationButtonElement(newItemName, true, originalLine.stations); // isExpress=true
+                    plusButtonsContainer.insertBefore(button, insertBeforeButton); // Insert at correct ordered position
                     listModal.style.display = 'none';
-                    return; // IMPORTANT: stop execution here to prevent default append logic
+                    return; // Stop execution for express lines
                 }
 
+                // --- Revised Default Adding Logic (Non-Express) ---
+                const newButton = createStationButtonElement(item.name, false); // isExpress=false
 
-                // default adding logic for non-express lines
-                clickedButton.innerHTML = '';
-                const container = document.createElement('div');
-                container.style.display = 'flex';
-                container.style.alignItems = 'center';
-                container.style.justifyContent = 'space-between';
-                container.style.width = '100%';
-
-                const nameSpan = document.createElement('span');
-                nameSpan.textContent = item.name;
-                const btnGroup = document.createElement('div');
-                btnGroup.classList.add('btn-group');
-                btnGroup.style.display = 'flex';
-                btnGroup.style.gap = '4px';
-
-                const upBtn = document.createElement('button');
-                upBtn.textContent = '↑';
-                upBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    const prev = clickedButton.previousElementSibling;
-                    if (prev && prev.classList.contains('plus-button')) {
-                        plusButtonsContainer.insertBefore(clickedButton, prev);
-                    }
-                };
-
-                const downBtn = document.createElement('button');
-                downBtn.textContent = '↓';
-                downBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    const next = clickedButton.nextElementSibling;
-                    if (next && next.classList.contains('plus-button')) {
-                        plusButtonsContainer.insertBefore(next, clickedButton);
-                    }
-                };
-
-                const deleteBtn = document.createElement('button');
-                deleteBtn.textContent = '×';
-                deleteBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    clickedButton.remove();
-                    // always "+" button
-                    if (plusButtonsContainer.querySelectorAll('.plus-button span').length === 0 && plusButtonsContainer.innerHTML.trim() === '') {
-                        const newPlusButton = document.createElement('button');
-                        newPlusButton.classList.add('plus-button');
-                        newPlusButton.textContent = '+';
-                        plusButtonsContainer.appendChild(newPlusButton);
-                    }
-                };
-
-                btnGroup.appendChild(upBtn);
-                btnGroup.appendChild(downBtn);
-                btnGroup.appendChild(deleteBtn);
-
-                container.appendChild(nameSpan);
-                container.appendChild(btnGroup);
-                clickedButton.appendChild(container);
-
-                if (clickedButton === plusButtonsContainer.lastElementChild) {
-                    const newPlusButton = document.createElement('button');
-                    newPlusButton.classList.add('plus-button');
-                    newPlusButton.textContent = '+';
-                    plusButtonsContainer.appendChild(newPlusButton);
+                // Remove the specific '+' button that was clicked to open the modal
+                // The 'clickedButton' variable from the outer scope holds the reference
+                if (clickedButton && clickedButton.textContent.trim() === '+') {
+                     clickedButton.remove();
                 }
-                listModal.style.display = 'none';
+
+                // Append the new station button (it will go before the new '+' below)
+                plusButtonsContainer.appendChild(newButton);
+
+                // Always append a new '+' button at the end to allow adding more stations
+                const newPlusButton = document.createElement('button');
+                newPlusButton.classList.add('plus-button');
+                newPlusButton.textContent = '+';
+                plusButtonsContainer.appendChild(newPlusButton);
+
+
+                listModal.style.display = 'none'; // Close modal
             };
 
             modalList.appendChild(listItem);
         });
-        listModal.style.display = 'block';
+        listModal.style.display = 'block'; // Show the modal
     }
+    // Note: Clicking on an existing station button (not '+') is handled by its internal buttons (up/down/delete)
 });
+
+
+// Helper function to create the station button element with controls
+function createStationButtonElement(stationName, isExpress = false, originalLineStations = []) {
+    const button = document.createElement('button');
+    button.classList.add('plus-button');
+
+    const isEndpoint = isExpress && (stationName === originalLineStations[0] || stationName === originalLineStations[originalLineStations.length - 1]);
+    if (isEndpoint) {
+        button.style.borderColor = '#aaa';
+        button.title = "Endpoint fixed by original line";
+    }
+
+    const container = document.createElement('div');
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.justifyContent = 'space-between';
+    container.style.width = '100%';
+
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = stationName;
+    if (isEndpoint) {
+        nameSpan.style.color = '#555';
+    }
+
+    const btnGroup = document.createElement('div');
+    btnGroup.classList.add('btn-group');
+    btnGroup.style.display = 'flex';
+    btnGroup.style.gap = '4px';
+
+    // --- Up Button ---
+    const upBtn = document.createElement('button');
+    upBtn.textContent = '↑';
+    upBtn.classList.add("btn", "btn-sm", "btn-outline-secondary"); // Added btn classes
+    upBtn.disabled = isExpress; // Disable for express lines
+    upBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (isExpress) return;
+        const prev = button.previousElementSibling;
+        // Check if previous exists and is also a station button (not the initial '+')
+        if (prev && prev.classList.contains('plus-button') && prev.querySelector('span')) {
+            plusButtonsContainer.insertBefore(button, prev);
+        }
+    };
+
+    // --- Down Button ---
+    const downBtn = document.createElement('button');
+    downBtn.textContent = '↓';
+    downBtn.classList.add("btn", "btn-sm", "btn-outline-secondary"); // Added btn classes
+    downBtn.disabled = isExpress; // Disable for express lines
+    downBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (isExpress) return;
+        const next = button.nextElementSibling;
+        // Check if next exists and is also a station button (not the final '+')
+        if (next && next.classList.contains('plus-button') && next.querySelector('span')) {
+            plusButtonsContainer.insertBefore(next, button);
+        }
+    };
+
+    // --- Delete Button ---
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = '×';
+    deleteBtn.classList.add("btn", "btn-sm", "btn-outline-danger"); // Added btn classes
+    deleteBtn.disabled = isEndpoint; // Disable delete for express endpoints
+    deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (isEndpoint) return;
+        button.remove();
+        // Ensure '+' button exists if all stations are removed
+        if (plusButtonsContainer.querySelectorAll('.plus-button span').length === 0) {
+            // Check if the '+' button is already there
+            const lastElement = plusButtonsContainer.lastElementChild;
+            if (!lastElement || lastElement.textContent.trim() !== '+') {
+                 const newPlusButton = document.createElement('button');
+                 newPlusButton.classList.add('plus-button');
+                 newPlusButton.textContent = '+';
+                 plusButtonsContainer.appendChild(newPlusButton);
+            }
+        }
+    };
+
+    btnGroup.appendChild(upBtn);
+    btnGroup.appendChild(downBtn);
+    btnGroup.appendChild(deleteBtn);
+
+    container.appendChild(nameSpan);
+    container.appendChild(btnGroup);
+    button.appendChild(container);
+
+    return button;
+}
+
 
 function updateLinesUI() {
     const lineListElement = document.getElementById('lineListItems');
@@ -1570,163 +1784,100 @@ function updateLinesUI() {
 
     lines.forEach((line, index) => {
         const lineItem = document.createElement('li');
-        lineItem.classList.add('line-item');
+        lineItem.classList.add('line-item'); // Add class for potential styling
 
         const label = document.createElement('span');
         label.textContent = `${line.code} - ${line.name || ''}`;
-        label.style.color = line.color || 'black';
+        label.style.color = line.color || 'black'; // Apply line color
         if (line.originalLineCode) {
-            label.style.fontStyle = 'italic';
+            label.style.fontStyle = 'italic'; // Italicize express lines
             label.title = `Express service for line ${line.originalLineCode}`;
         }
 
-        // hover stuff
+        // Add hover effect to highlight line on canvas
         label.addEventListener('mouseenter', () => hoveredLine = line);
         label.addEventListener('mouseleave', () => hoveredLine = null);
 
-        // click/tap handler to open edit modal
+        // Function to open the edit modal for the current line
         const openEditModal = () => {
+            resetLineForm(); // Reset form before populating
             const isExpressLine = !!line.originalLineCode;
 
             document.getElementById('lineModalTitle').textContent = `Edit Line: ${line.code}`;
             document.getElementById('saveLine').textContent = 'Save Changes';
             document.getElementById('deleteLine').style.display = 'inline-block'; // Show delete button
 
-            // only show "Create Express Service" button if it's not an express line
+            // Show "Create Express Service" button only if it's NOT an express line
             createExpressServiceBtn.style.display = isExpressLine ? 'none' : 'inline-block';
 
-            editingLineIndex = index;
+            editingLineIndex = index; // Set the global index for saving
 
+            // Populate basic line info
             document.getElementById('lineName').value = line.name;
             document.getElementById('lineCode').value = line.code;
             document.getElementById('lineColor').value = line.color;
 
-            // set line type radio buttons and disable if express
+            // Set line type radio buttons and disable if it's an express line
             document.querySelectorAll('input[name="lineType"]').forEach(r => {
                 r.checked = r.value === line.type;
-                // disable radios if it's an express line
-                r.disabled = isExpressLine;
+                r.disabled = isExpressLine; // Disable type change for express lines
             });
 
-            plusButtonsContainer.innerHTML = '';
-            selectedValues.clear();
+            // Populate stations in the plusButtonsContainer
+            plusButtonsContainer.innerHTML = ''; // Clear existing buttons
+            selectedValues.clear(); // Clear selection set (though not used here)
 
-            line.stations.forEach((name, i) => {
-                const isEndpoint = isExpressLine && (i === 0 || i === line.stations.length - 1);
+            let originalLineStationsForExpress = [];
+            if (isExpressLine) {
+                 const originalLine = lines.find(l => l.code === line.originalLineCode);
+                 originalLineStationsForExpress = originalLine ? originalLine.stations : [];
+            }
 
-                const button = document.createElement('button');
-                button.classList.add('plus-button');
-                if (isEndpoint) {
-                    button.style.borderColor = '#aaa';
-                    button.title = "Endpoint fixed by original line";
-                }
-
-                const container = document.createElement('div');
-                container.style.display = 'flex';
-                container.style.justifyContent = 'space-between';
-                container.style.alignItems = 'center';
-                container.style.width = '100%';
-
-                const nameSpan = document.createElement('span');
-                nameSpan.textContent = name;
-                if (isEndpoint) {
-                    nameSpan.style.color = '#555';
-                }
-
-                const btnGroup = document.createElement('div');
-                btnGroup.classList.add('btn-group');
-                btnGroup.style.display = 'flex';
-                btnGroup.style.gap = '4px';
-
-                const upBtn = document.createElement('button');
-                upBtn.classList.add("btn");
-                upBtn.classList.add("btn-outline-primary");
-                upBtn.textContent = '↑';
-                upBtn.disabled = isExpressLine; // disable up/down for express
-                upBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    if (isExpressLine) return;
-                    const prev = button.previousElementSibling;
-                    if (prev && prev.classList.contains('plus-button')) {
-                        plusButtonsContainer.insertBefore(button, prev);
-                    }
-                };
-
-                const downBtn = document.createElement('button');
-                downBtn.classList.add("btn");
-                downBtn.classList.add("btn-outline-primary");
-                downBtn.textContent = '↓';
-                downBtn.disabled = isExpressLine; // disable up/down for express
-                downBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    if (isExpressLine) return;
-                    const next = button.nextElementSibling;
-                    if (next && next.classList.contains('plus-button')) {
-                        plusButtonsContainer.insertBefore(next, button);
-                    }
-                };
-
-                const deleteBtn = document.createElement('button');
-                deleteBtn.classList.add("btn");
-                deleteBtn.classList.add("btn-outline-danger");
-                deleteBtn.textContent = '×';
-                // disable delete only for endpoints if it's an express line
-                deleteBtn.disabled = isEndpoint;
-                deleteBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    if (isEndpoint) return;
-                    button.remove();
-                    // always "+" button (for like the 3rd time)
-                    if (plusButtonsContainer.querySelectorAll('.plus-button span').length === 0 && plusButtonsContainer.innerHTML.trim() === '') {
-                        const newPlusButton = document.createElement('button');
-                        newPlusButton.classList.add('plus-button');
-                        newPlusButton.textContent = '+';
-                        plusButtonsContainer.appendChild(newPlusButton);
-                    }
-                };
-
-                btnGroup.appendChild(upBtn);
-                btnGroup.appendChild(downBtn);
-                btnGroup.appendChild(deleteBtn);
-
-                container.appendChild(nameSpan);
-                container.appendChild(btnGroup);
-                button.appendChild(container);
-
+            line.stations.forEach(stationName => {
+                const button = createStationButtonElement(stationName, isExpressLine, originalLineStationsForExpress);
                 plusButtonsContainer.appendChild(button);
             });
 
-            // ALWAYS "+" BUTTON
+            // Add the final '+' button
             const trailingPlus = document.createElement('button');
             trailingPlus.classList.add('plus-button');
             trailingPlus.textContent = '+';
             plusButtonsContainer.appendChild(trailingPlus);
 
+            // Populate and set the assigned train and quantity
+            populateTrainSelect(line.assignedTrain); // Pass the currently assigned train
+            // Set quantity *after* populateTrainSelect potentially sets max value
+            if (line.assignedTrain && line.trainQuantity > 0) {
+                 trainQuantityInput.value = line.trainQuantity;
+            } else {
+                 trainQuantityInput.value = 0;
+            }
 
-            editingLineIndex = index;
-            populateTrainSelect(line.assignedTrain);
-            lineModal.style.display = 'block';
+
+            lineModal.style.display = 'block'; // Show the modal
         };
 
-        // add event listeners for both clickstart and touchstart (for tap)
+        // Add event listeners for both click and touch (tap) to open the modal
         label.addEventListener('click', openEditModal);
-        label.addEventListener('touchstart', (e) => {}, { passive: true });
+        label.addEventListener('touchstart', (e) => { /* Can be empty or add visual feedback */ }, { passive: true }); // Allow scroll
         label.addEventListener('touchend', (e) => {
+            // Basic tap detection (prevent triggering if scrolling)
+            // You might need a more robust tap detection if issues arise
             openEditModal();
-            e.preventDefault();
+            e.preventDefault(); // Prevent potential ghost clicks
         });
 
 
+        // Create and add the Edit button
         const editBtn = document.createElement('button');
-        editBtn.classList.add("btn");
-        editBtn.classList.add("btn-outline-info")
+        editBtn.classList.add("btn", "btn-sm", "btn-outline-info"); // Use Bootstrap classes
         editBtn.textContent = 'Edit';
-        editBtn.style.marginLeft = '8px';
+        editBtn.style.marginLeft = '8px'; // Add some space
         editBtn.onclick = (e) => {
-            e.stopPropagation();
+            e.stopPropagation(); // Prevent li click handler if button is clicked
             openEditModal();
         };
-        // add touch listener to button
+        // Add touch listener to button as well
         editBtn.addEventListener('touchend', (e) => {
             e.stopPropagation();
             openEditModal();
@@ -1735,7 +1886,7 @@ function updateLinesUI() {
 
 
         lineItem.appendChild(label);
-        lineItem.appendChild(editBtn);
+        lineItem.appendChild(editBtn); // Add the edit button
         lineListElement.appendChild(lineItem);
     });
 }
@@ -1763,7 +1914,29 @@ function displayConnectedLines(stationName) {
             const stationNumber = stationIndex !== -1 ? stationIndex + 1 : '?';
             listItem.textContent = `${line.code}${stationNumber} - ${line.name || ''} (${line.type})` + (line.assignedTrain ? ` - Train: ${line.assignedTrain} (x${line.trainQuantity || 0})` : '');
             listItem.style.cursor = 'pointer';
-            listItem.addEventListener('click', () => {});
+            // Add click/tap listener to potentially edit the line from here?
+            listItem.addEventListener('click', () => {
+                 // Find the line index and open the edit modal
+                 const lineIndexToEdit = lines.findIndex(l => l.code === line.code);
+                 if (lineIndexToEdit !== -1) {
+                     // Close the station lines modal first
+                     stationLinesModal.style.display = 'none';
+                     // Find the specific line object again to pass to the UI update function
+                     const lineToEdit = lines[lineIndexToEdit];
+                     // Simulate clicking the edit button for this line in the main list
+                     // This requires finding the correct list item and triggering its edit logic
+                     // Or directly calling a refactored openEditModal function
+                     // For simplicity, let's find the corresponding UI element if possible
+                     const lineListItems = document.querySelectorAll('#lineListItems .line-item');
+                     lineListItems.forEach(item => {
+                         const label = item.querySelector('span');
+                         const editButton = item.querySelector('button');
+                         if (label && label.textContent.startsWith(lineToEdit.code)) {
+                             editButton.click(); // Simulate click on the edit button
+                         }
+                     });
+                 }
+            });
             stationLinesList.appendChild(listItem);
         });
     }
@@ -1776,7 +1949,7 @@ document.getElementById('exportBtn').addEventListener('click', () => {
     const data = {
         stations: stations,
         lines: lines,
-        trains: trains
+        trains: trains // Assuming trains is the nested array structure
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1803,72 +1976,143 @@ document.getElementById('importInput').addEventListener('change', (event) => {
         try {
             const json = JSON.parse(e.target.result);
 
+            // --- Basic Structure Validation ---
             if (!json || typeof json !== 'object' || !Array.isArray(json.stations) || !Array.isArray(json.lines) || !Array.isArray(json.trains)) {
-                throw new Error("Invalid file format. Missing 'stations', 'lines', or 'trains' array.");
+                throw new Error("Invalid file format. Missing 'stations', 'lines', or 'trains' array at the top level.");
             }
+             // Validate trains structure (assuming it's nested)
+            if (!json.trains.every(group => Array.isArray(group))) {
+                throw new Error("Invalid 'trains' format. Expected an array of arrays.");
+            }
+
+            // Flatten trains for easier lookup during validation, but keep original structure for loading
+            const flatTrains = json.trains.flat();
+
+            // --- Create Maps for Efficient Lookups ---
             const stationNameMap = new Map(json.stations.map(station => [station.name, station]));
-            const trainNameMap = new Map(json.trains.map(train => [train.name, train]));
+            const trainNameMap = new Map(flatTrains.map(train => [train.name, train]));
             const lineCodeMap = new Map(json.lines.map(line => [line.code, line]));
 
-            // validate stations
+
+            // --- Detailed Validation ---
+
+            // Validate Stations
             json.stations.forEach((station, index) => {
-                if (!(typeof station === 'object' && station !== null && typeof station.id !== 'undefined' && typeof station.x === 'number' && typeof station.y === 'number' && typeof station.name === 'string' && station.name.trim() !== '' && Array.isArray(station.location) && station.location.every(loc => typeof loc === 'string' && ['underground', 'ground', 'suspended'].includes(loc)))) {
-                    throw new Error(`Invalid station data at index ${index}. Check properties (id, x, y, name, location).`);
+                if (!(typeof station === 'object' && station !== null &&
+                    typeof station.id !== 'undefined' && // Assuming ID exists, adjust if not
+                    typeof station.x === 'number' && typeof station.y === 'number' &&
+                    typeof station.name === 'string' && station.name.trim() !== '' &&
+                    Array.isArray(station.location) && station.location.length > 0 && // Must have at least one type
+                    station.location.every(loc => typeof loc === 'string' && ['underground', 'ground', 'suspended'].includes(loc))
+                )) {
+                    throw new Error(`Invalid station data at index ${index} (Name: ${station.name || 'N/A'}). Check properties (id, x, y, name, location array with valid types).`);
                 }
             });
             const stationNames = json.stations.map(station => station.name);
             if (stationNames.length !== new Set(stationNames).size) throw new Error("Duplicate station names found.");
 
-            // validate trains
-            json.trains.forEach((train, index) => {
-                if (!(typeof train === 'object' && train !== null && typeof train.name === 'string' && train.name.trim() !== '' && typeof train.type === 'string' && ['underground', 'ground', 'suspended'].includes(train.type) && typeof train.quantity === 'number' && train.quantity >= 0)) {
-                    throw new Error(`Invalid train data at index ${index}. Check properties (name, type, quantity).`);
+            // Validate Trains (using the flattened list for validation)
+            flatTrains.forEach((train, index) => {
+                if (!(typeof train === 'object' && train !== null &&
+                    typeof train.id !== 'undefined' && // Assuming ID exists
+                    typeof train.name === 'string' && train.name.trim() !== '' &&
+                    typeof train.type === 'string' && ['underground', 'ground', 'suspended'].includes(train.type) &&
+                    typeof train.capacity === 'number' && Number.isInteger(train.capacity) && train.capacity >= 0 // Check capacity is non-negative integer
+                )) {
+                    throw new Error(`Invalid train data at flat index ${index} (Name: ${train.name || 'N/A'}). Check properties (id, name, type, capacity).`);
                 }
             });
-            const trainNames = json.trains.map(train => train.name);
+            const trainNames = flatTrains.map(train => train.name);
             if (trainNames.length !== new Set(trainNames).size) throw new Error("Duplicate train names found.");
 
-            // validate lines
+            // Validate Lines
             json.lines.forEach((line, index) => {
-                if (!(typeof line === 'object' && line !== null && typeof line.name === 'string' && typeof line.code === 'string' && line.code.length === 2 && typeof line.color === 'string' && typeof line.type === 'string' && ['underground', 'ground', 'suspended'].includes(line.type) && Array.isArray(line.stations) && line.stations.length >= 2 && line.stations.every(stationName => typeof stationName === 'string') && (line.assignedTrain === null || typeof line.assignedTrain === 'undefined' || (typeof line.assignedTrain === 'string' && trainNameMap.has(line.assignedTrain))) && (typeof line.trainQuantity === 'undefined' || (typeof line.trainQuantity === 'number' && line.trainQuantity >= 0)) && (typeof line.originalLineCode === 'undefined' || (typeof line.originalLineCode === 'string' && lineCodeMap.has(line.originalLineCode))))) {
-                    throw new Error(`Invalid line data at index ${index} (Code: ${line.code}). Check properties, station count, train/quantity, originalLineCode.`);
+                if (!(typeof line === 'object' && line !== null &&
+                    typeof line.name === 'string' && // Name can be empty, but must be string
+                    typeof line.code === 'string' && line.code.length === 2 && /^[A-Z0-9]{2}$/i.test(line.code) && // 2 alphanumeric chars
+                    typeof line.color === 'string' && /^#[0-9A-F]{6}$/i.test(line.color) && // Basic hex color check
+                    typeof line.type === 'string' && ['underground', 'ground', 'suspended'].includes(line.type) &&
+                    Array.isArray(line.stations) && line.stations.length >= 2 &&
+                    line.stations.every(stationName => typeof stationName === 'string') &&
+                    (line.assignedTrain === null || typeof line.assignedTrain === 'undefined' || (typeof line.assignedTrain === 'string' && trainNameMap.has(line.assignedTrain))) &&
+                    (typeof line.trainQuantity === 'undefined' || (typeof line.trainQuantity === 'number' && Number.isInteger(line.trainQuantity) && line.trainQuantity >= 0)) && // Check quantity is non-negative integer
+                    (typeof line.originalLineCode === 'undefined' || (typeof line.originalLineCode === 'string' && lineCodeMap.has(line.originalLineCode)))
+                )) {
+                    throw new Error(`Invalid line data at index ${index} (Code: ${line.code || 'N/A'}). Check properties (name, code, color, type, stations array, assignedTrain, trainQuantity, originalLineCode).`);
                 }
             });
             const lineCodes = json.lines.map(line => line.code);
             if (lineCodes.length !== new Set(lineCodes).size) throw new Error("Duplicate line codes found.");
 
-            // validate references and consistency
+            // --- Cross-Reference and Consistency Validation ---
             for (const line of json.lines) {
-                if (!line.stations.every(stationName => stationNameMap.has(stationName))) throw new Error(`Line "${line.code}" contains unknown station names.`);
-                for (let i = 0; i < line.stations.length - 1; i++) if (line.stations[i] === line.stations[i + 1]) throw new Error(`Line "${line.code}" has consecutive duplicate station: "${line.stations[i]}".`);
-                if (!line.stations.every(stationName => stationNameMap.get(stationName)?.location.includes(line.type))) throw new Error(`Line "${line.code}" contains stations not matching line type (${line.type}).`);
+                // Check if all stations in the line exist in the stations list
+                if (!line.stations.every(stationName => stationNameMap.has(stationName))) {
+                    const unknown = line.stations.find(sn => !stationNameMap.has(sn));
+                    throw new Error(`Line "${line.code}" contains unknown station name: "${unknown}".`);
+                }
+                // Check for consecutive duplicate stations
+                for (let i = 0; i < line.stations.length - 1; i++) {
+                    if (line.stations[i] === line.stations[i + 1]) throw new Error(`Line "${line.code}" has consecutive duplicate station: "${line.stations[i]}".`);
+                }
+                // Check if all stations on the line support the line's type
+                if (!line.stations.every(stationName => stationNameMap.get(stationName)?.location.includes(line.type))) {
+                     const incompatibleStation = line.stations.find(sn => !stationNameMap.get(sn)?.location.includes(line.type));
+                    throw new Error(`Line "${line.code}" (${line.type}) contains station "${incompatibleStation}" which does not support this type.`);
+                }
+                // Check assigned train consistency
                 if (line.assignedTrain) {
                     const assignedTrainObj = trainNameMap.get(line.assignedTrain);
-                    if (!assignedTrainObj || assignedTrainObj.type !== line.type) throw new Error(`Assigned train "${line.assignedTrain}" on line "${line.code}" does not match line type.`);
-                    if (typeof line.trainQuantity !== 'number' || line.trainQuantity < 0 || line.trainQuantity > assignedTrainObj.quantity) throw new Error(`Invalid train quantity for train "${line.assignedTrain}" on line "${line.code}". Max: ${assignedTrainObj.quantity}, Found: ${line.trainQuantity}.`);
-                } else if (line.trainQuantity > 0) throw new Error(`Train quantity specified for line "${line.code}" but no train assigned.`);
+                    if (!assignedTrainObj) throw new Error(`Assigned train "${line.assignedTrain}" on line "${line.code}" does not exist in the trains list.`);
+                    if (assignedTrainObj.type !== line.type) throw new Error(`Assigned train "${line.assignedTrain}" (${assignedTrainObj.type}) on line "${line.code}" does not match line type (${line.type}).`);
+                    if (typeof line.trainQuantity !== 'number' || line.trainQuantity < 0) throw new Error(`Invalid train quantity (${line.trainQuantity}) for train "${line.assignedTrain}" on line "${line.code}". Must be 0 or greater.`);
+                    // Note: We don't validate against capacity here, as capacity might change. The app logic handles runtime assignment.
+                } else if (line.trainQuantity > 0) {
+                    throw new Error(`Train quantity (${line.trainQuantity}) specified for line "${line.code}" but no train assigned.`);
+                }
+                // Check express line consistency
                 if (line.originalLineCode) {
                     const originalLine = lineCodeMap.get(line.originalLineCode);
                     if (!originalLine) throw new Error(`Express line "${line.code}" references non-existent original line "${line.originalLineCode}".`);
-                    if (!line.stations.every(stationName => originalLine.stations.includes(stationName))) throw new Error(`Express line "${line.code}" contains stations not in original line "${originalLine.code}".`);
+                    if (originalLine.originalLineCode) throw new Error(`Express line "${line.code}" cannot reference another express line "${originalLine.code}".`); // Prevent chaining express lines
+                    if (!line.stations.every(stationName => originalLine.stations.includes(stationName))) {
+                         const notInOriginal = line.stations.find(sn => !originalLine.stations.includes(sn));
+                        throw new Error(`Express line "${line.code}" contains station "${notInOriginal}" which is not in the original line "${originalLine.code}".`);
+                    }
                     if (line.stations[0] !== originalLine.stations[0] || line.stations[line.stations.length - 1] !== originalLine.stations[originalLine.stations.length - 1]) throw new Error(`Express line "${line.code}" endpoints do not match original line "${originalLine.code}".`);
-                    if (line.type !== originalLine.type) throw new Error(`Express line "${line.code}" type does not match original line "${originalLine.code}".`);
+                    if (line.type !== originalLine.type) throw new Error(`Express line "${line.code}" type (${line.type}) does not match original line "${originalLine.code}" type (${originalLine.type}).`);
+                    // Check if express stations maintain original order
+                    let lastOriginalIndex = -1;
+                    for(const stationName of line.stations) {
+                        const currentOriginalIndex = originalLine.stations.indexOf(stationName);
+                        if (currentOriginalIndex < lastOriginalIndex) {
+                             throw new Error(`Express line "${line.code}" stations are not in the same order as the original line "${originalLine.code}".`);
+                        }
+                        lastOriginalIndex = currentOriginalIndex;
+                    }
                 }
             }
 
-            // if OK load the data
+            // --- If all validations pass, load the data ---
             stations = json.stations;
             lines = json.lines;
-            trains = json.trains;
+            trains = json.trains; // Load the original nested structure
             update();
             updateLinesUI();
             updateStationStats();
             alert("Data imported successfully!");
 
         } catch (err) {
+            console.error("Import failed:", err); // Log detailed error
             alert("Import Error: " + err.message);
+        } finally {
+             // Reset the input value so the user can import the same file again if needed after fixing it
+            event.target.value = null;
         }
-        event.target.value = null;
+    };
+    reader.onerror = function() {
+        alert("Error reading the file.");
+         event.target.value = null;
     };
     reader.readAsText(file);
 });

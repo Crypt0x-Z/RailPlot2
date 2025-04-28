@@ -10,17 +10,7 @@ Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::get("/stations", [StationController::class, "index"]);
-Route::post("/stations", [StationController::class, "store"]);
-Route::put("/stations/{id}", [StationController::class, "update"]);
-Route::delete("/stations/{id}", [StationController::class, "destroy"]);
-
-Route::get("/lines", [LineController::class, "index"]);
-Route::post("/lines", [LineController::class, "store"]);
-Route::put("/lines/{id}", [LineController::class, "update"]);
-Route::delete("/lines/{id}", [LineController::class, "destroy"]);
-
-Route::get("/trains", [TrainController::class, "index"]);
-Route::post("/trains", [TrainController::class, "store"]);
-Route::put("/trains/{id}", [TrainController::class, "update"]);
-Route::delete("/trains/{id}", [TrainController::class, "destroy"]);
+Route::get("/trains-get", [TrainController::class, "index"]);
+Route::post("/trains-post", [TrainController::class, "store"]);
+Route::put("/trains-put/{id}", [TrainController::class, "update"]);
+Route::delete("/trains-delete/{id}", [TrainController::class, "destroy"]);

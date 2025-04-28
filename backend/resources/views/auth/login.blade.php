@@ -128,17 +128,6 @@
                             </div>
                         @enderror
                     </div>
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div class="form-check">
-                            <input id="remember_me" type="checkbox" class="form-check-input" name="remember">
-                            <label class="form-check-label" for="remember_me">{{ __('Remember me') }}</label>
-                        </div>
-                        @if (Route::has('password.request'))
-                            <a class="text-decoration-none forgot-password-link" href="{{ route('password.request') }}">
-                                {{ __('Forgot your password?') }}
-                            </a>
-                        @endif
-                    </div>
                     <div class="d-grid mb-3">
                         <button type="submit" class="btn btn-primary btn-lg fw-semibold">
                             {{ __('Log in') }}
