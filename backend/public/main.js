@@ -45,7 +45,7 @@ var trains = [];
 var selectedStation = null;
 var newStationWorldCoord = null;
 var hoveredLine = null;
-var editingLineIndex = null; // which line is being edited
+var editingLineIndex = null;
 
 const newItemInput = document.getElementById('new-item');
 const addButton = document.getElementById('add-button');
@@ -59,7 +59,7 @@ var recentlySelected = null;
 
 // modal indentify
 const stationModal = document.getElementById("stationModal");
-const lineModal = document.getElementById("addLineModal"); // Renamed for clarity
+const lineModal = document.getElementById("addLineModal"); 
 const stationLinesModal = document.getElementById("stationLinesModal");
 
 const closeStationModalBtn = document.querySelector(".station-modal-close");
@@ -139,7 +139,7 @@ function updateStationStats() {
     const groundLines = lines.filter(l => l.type === 'ground').length;
     const undergroundLines = lines.filter(l => l.type === 'underground').length;
     const suspendedLines = lines.filter(l => l.type === 'suspended').length;
-    const expressLines = lines.filter(l => l.originalLineCode).length; // Count lines with originalLineCode
+    const expressLines = lines.filter(l => l.originalLineCode).length; 
 
     const totalLinesEl = document.getElementById('totalLines');
     const groundLinesEl = document.getElementById('groundLines');
@@ -151,23 +151,7 @@ function updateStationStats() {
     if (groundLinesEl) groundLinesEl.textContent = groundLines;
     if (undergroundLinesEl) undergroundLinesEl.textContent = undergroundLines;
     if (suspendedLinesEl) suspendedLinesEl.textContent = suspendedLines;
-    if (expressLinesStatEl) expressLinesStatEl.textContent = expressLines; // Update Express stat
-
-    // update stats
-    const totalTrains = trains.reduce((sum, train) => sum + train.capacity, 0);
-    const groundTrains = trains.filter(t => t.type === 'ground').reduce((sum, train) => sum + train.capacity, 0);
-    const undergroundTrains = trains.filter(t => t.type === 'underground').reduce((sum, train) => sum + train.capacity, 0);
-    const suspendedTrains = trains.filter(t => t.type === 'suspended').reduce((sum, train) => sum + train.capacity, 0);
-
-    const totalTrainsStatEl = document.getElementById('totalTrainsStat');
-    const groundTrainsStatEl = document.getElementById('groundTrainsStat');
-    const undergroundTrainsStatEl = document.getElementById('undergroundTrainsStat');
-    const suspendedTrainsStatEl = document.getElementById('suspendedTrainsStat');
-
-    if (totalTrainsStatEl) totalTrainsStatEl.textContent = totalTrains;
-    if (groundTrainsStatEl) groundTrainsStatEl.textContent = groundTrains;
-    if (undergroundTrainsStatEl) undergroundTrainsStatEl.textContent = undergroundTrains;
-    if (suspendedTrainsStatEl) suspendedTrainsStatEl.textContent = suspendedTrains;
+    if (expressLinesStatEl) expressLinesStatEl.textContent = expressLines;
 }
 
 

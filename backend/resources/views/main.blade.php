@@ -258,14 +258,6 @@
             <div>Underground: <span id="undergroundLines">0</span></div>
             <div>Suspended: <span id="suspendedLines">0</span></div>
             <div>Express: <span id="expressLinesStat">0</span></div>
-            <div><strong>||</strong></div>
-        </div>
-        <div>
-            <strong>Trains:</strong>
-            <div>Total: <span id="totalTrainsStat">0</span></div>
-            <div>Ground: <span id="groundTrainsStat">0</span></div>
-            <div>Underground: <span id="undergroundTrainsStat">0</span></div>
-            <div>Suspended: <span id="suspendedTrainsStat">0</span></div>
         </div>
     </div>
 
