@@ -13,6 +13,18 @@
     <link rel="icon" href="https://placehold.co/32x32/0d6efd/ffffff?text=L" type="image/png">
     <title>Login - Laravel</title>
     <style>
+
+    /* Navbar styling */
+        .navbar {
+            /* Optional: Add a subtle shadow or background */
+             background-color: rgba(0, 0, 0, 0.2); /* Semi-transparent dark */
+             backdrop-filter: blur(5px);
+             -webkit-backdrop-filter: blur(5px);
+        }
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem; /* Adjust size as needed */
+        }
         /* Apply gradient background to the body */
         body {
             /* Blue-to-purple gradient */
@@ -73,6 +85,17 @@
     </style>
 </head>
 <body>
+
+    {{-- Top Navigation Bar --}}
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top"> {{-- Added fixed-top --}}
+        <div class="container-fluid justify-content-center"> {{-- Center content within navbar --}}
+            {{-- Centered Brand with Logo Placeholder --}}
+            <a class="navbar-brand d-flex align-items-center" href="#"> {{-- Add link if needed --}}
+                {{-- Brand Text --}}
+                <span>RailPlot</span>
+            </a>
+        </div>
+    </nav>
 
     {{-- Main container to center the login card --}}
     <div class="container d-flex justify-content-center align-items-center login-container p-4">
