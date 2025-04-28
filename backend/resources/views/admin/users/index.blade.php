@@ -92,11 +92,13 @@
          .admin-management-card .card-subtitle {
             color: #495057;
          }
-         /* Logout button styling */
-         .logout-form-container {
+         .footer-actions-container {
             border-top: 1px solid rgba(0, 0, 0, 0.1); /* Separator line */
             padding-top: 1rem;
-            margin-top: 1.5rem;
+            margin-top: 1rem; /* Reduced margin */
+            display: flex; /* Use flexbox */
+            justify-content: space-between; /* Space out buttons */
+            align-items: center; /* Align items vertically */
          }
     </style>
 </head>
@@ -162,15 +164,28 @@
             {{-- </div> --}}
             {{-- @endif --}}
 
-            {{-- Logout Button Section --}}
-            <div class="logout-form-container text-end"> {{-- Aligns button to the right --}}
-                <form method="POST" action="{{ route('logout') }}" class="d-inline">
-                    @csrf
-                    <button type="submit" class="btn btn-outline-danger btn-sm">
-                         <i class="bi bi-box-arrow-right me-1"></i> {{-- Bootstrap Icon --}}
-                        {{ __('Log Out') }}
-                    </button>
-                </form>
+           {{-- Footer Actions Section --}}
+            {{-- Footer Actions Section --}}
+            <div class="footer-actions-container">
+                 {{-- Switch to User Management Button --}}
+                 <div> {{-- Wrap in div for flex alignment --}}
+                    {{-- Make sure the route 'admin.users.index' exists or change it to the correct route name --}}
+                    <a href="{{ route('admin.trains.index') }}" class="btn btn-outline-info btn-sm">
+                        <i class="bi bi-people-fill me-1"></i>
+                        {{ __('Switch to Train Management') }}
+                    </a>
+                 </div>
+
+                 {{-- Logout Button Section --}}
+                 <div> {{-- Wrap in div for flex alignment --}}
+                    <form method="POST" action="{{ route('logout') }}" class="d-inline">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                             <i class="bi bi-box-arrow-right me-1"></i>
+                            {{ __('Log Out') }}
+                        </button>
+                    </form>
+                 </div>
             </div>
 
         </div>{{-- End card-body --}}
